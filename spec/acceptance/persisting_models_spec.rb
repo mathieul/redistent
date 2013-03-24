@@ -1,10 +1,8 @@
 require "acceptance_helper"
 require "virtus"
-require "equalizer"
 
 class Task
   include Virtus
-  include ::Equalizer.new(:title, :queue, :queued_at)
   attr_reader :id
   attribute :title, String
   attribute :queue, Queue
@@ -13,20 +11,17 @@ end
 
 class Queue
   include Virtus
-  include ::Equalizer.new(:name)
   attr_reader :id
   attribute :name, String
 end
 
 class Team
   include Virtus
-  include ::Equalizer.new(:name)
   attr_reader :id
   attribute :name, String
 end
 
 class Teammate
-  include ::Equalizer.new(:name, :team)
   include Virtus
   attr_reader :id
   attribute :name, String
@@ -35,7 +30,6 @@ end
 
 class Skill
   include Virtus
-  include ::Equalizer.new(:level, :queue, :teammate)
   attr_reader :id
   attribute :level, Integer
   attribute :queue, Queue
@@ -72,7 +66,6 @@ feature "persisting models" do
 
     reloaded = store.get(:queue, queue.id)
     expect(reloaded.name).to eq("fix bugs")
-    expect(reloaded).to eq(queue)
 
     store.delete(reloaded)
     expect(store.get(:queue, queue.id)).to be_nil
@@ -88,7 +81,6 @@ feature "persisting models" do
     expect(reloaded.level).to eq(skill.level)
     expect(reloaded.queue).to eq(skill.queue)
     expect(reloaded.teammate).to eq(skill.teammate)
-    expect(reloaded).to eq(skill)
   end
 
   scenario "query a model's referrers" do
