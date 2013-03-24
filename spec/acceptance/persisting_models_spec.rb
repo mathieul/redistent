@@ -12,7 +12,7 @@ class Queue
   attribute :name, String
   embeds :tasks, score: ->(task) { task.created_ts } do
     define(:count)   { |key| key.zcard }
-    define(:next_id) { |key| key.command(...read next id...) }
+    define(:next_id) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
   end
 end
 
