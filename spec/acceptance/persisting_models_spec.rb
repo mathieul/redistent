@@ -4,7 +4,7 @@ require "equalizer"
 
 class Task
   include Virtus
-  include Equalizer.new(:title, :queue, :queued_at)
+  include ::Equalizer.new(:title, :queue, :queued_at)
   attr_reader :id
   attribute :title, String
   attribute :queue, Queue
@@ -13,20 +13,20 @@ end
 
 class Queue
   include Virtus
-  include Equalizer.new(:name)
+  include ::Equalizer.new(:name)
   attr_reader :id
   attribute :name, String
 end
 
 class Team
   include Virtus
-  include Equalizer.new(:name)
+  include ::Equalizer.new(:name)
   attr_reader :id
   attribute :name, String
 end
 
 class Teammate
-  include Equalizer.new(:name, :team)
+  include ::Equalizer.new(:name, :team)
   include Virtus
   attr_reader :id
   attribute :name, String
@@ -35,14 +35,14 @@ end
 
 class Skill
   include Virtus
-  include Equalizer.new(:level, :queue, :teammate)
+  include ::Equalizer.new(:level, :queue, :teammate)
   attr_reader :id
   attribute :level, Integer
   attribute :queue, Queue
   attribute :teammate, Teammate
 end
 
-class Accessor
+class PersistentAccessor
   include Redistent::Accessor
   model :queue do
     embeds :tasks, score: ->(task) { task.created_ts } do
@@ -64,7 +64,7 @@ class Accessor
 end
 
 feature "persisting models" do
-  let(:store) { Redistent::DataStore.new(Accessor.new, redis_config) }
+  let(:store) { PersistentAccessor.new(redis_config) }
 
   scenario "save, reload and delete a model" do
     queue = Queue.new(name: "fix bugs")
@@ -98,7 +98,7 @@ feature "persisting models" do
     store.save(teammate, other)
     reloaded_team = store.get(:team, teammate.team.id)
 
-    referrers = store.referenced_by(reloaded_team, :teammates)
+    referrers = store.collection(reloaded_team, :teammates)
     expect(referrers.count).to eq(2)
     expect(referrers.all.map(&:name).sort).to eq(["Jane Doe", "John Doe"])
   end
@@ -114,7 +114,7 @@ feature "persisting models" do
     collection << task1
 
     queue = store.get(:queue, queue.id)
-    collection = store.embedded_in(queue, :tasks)
+    collection = store.collection(queue, :tasks)
     expect(collection.count).to eq(2)
     expect(collection.next_id).to eq(task2)
   end
