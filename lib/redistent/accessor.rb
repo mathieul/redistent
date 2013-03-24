@@ -7,6 +7,9 @@ module Redistent
     module ClassMethods
       def model(*args)
       end
+
+      def before_write(*args)
+      end
     end
   end
 end
