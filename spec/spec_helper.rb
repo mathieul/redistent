@@ -1,7 +1,10 @@
 require "pry"
 require "redis"
+require "coveralls"
 
 require File.join(__dir__, "..", "lib", "redistent")
+
+Coveralls.wear!
 
 module GlobalConfigHelpers
   def redis_config

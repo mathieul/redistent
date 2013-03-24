@@ -3,6 +3,8 @@
 [![Build Status](https://secure.travis-ci.org/mathieul/redistent.png)](http://travis-ci.org/mathieul/redistent)
 [![Dependency Status](https://gemnasium.com/mathieul/redistent.png)](https://gemnasium.com/mathieul/redistent)
 [![Code Climate](https://codeclimate.com/github/mathieul/redistent.png)](https://codeclimate.com/github/mathieul/redistent)
+[![Coverage Status](https://coveralls.io/repos/mathieul/redistent/badge.png?branch=master)](https://coveralls.io/r/mathieul/redistent)
+
 
 Light persistent layer for Ruby objects using Redis and a centralized persister object.
 
