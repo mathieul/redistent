@@ -1,42 +1,121 @@
 require "acceptance_helper"
 require "virtus"
+require "equalizer"
 
 class Task
   include Virtus
+  include Equalizer.new(:title, :queue, :queued_at)
+  attr_reader :id
   attribute :title, String
-  attribute :created_at, DateTime
+  attribute :queue, Queue
+  attribute :queued_at, DateTime
 end
 
 class Queue
   include Virtus
+  include Equalizer.new(:name)
+  attr_reader :id
   attribute :name, String
-  embeds :tasks, score: ->(task) { task.created_ts } do
-    define(:count)   { |key| key.zcard }
-    define(:next_id) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
-  end
+end
+
+class Team
+  include Virtus
+  include Equalizer.new(:name)
+  attr_reader :id
+  attribute :name, String
 end
 
 class Teammate
+  include Equalizer.new(:name, :team)
   include Virtus
+  attr_reader :id
   attribute :name, String
+  attribute :team, Team
 end
 
 class Skill
   include Virtus
+  include Equalizer.new(:level, :queue, :teammate)
+  attr_reader :id
   attribute :level, Integer
-  references :queue
-  references :teammate
+  attribute :queue, Queue
+  attribute :teammate, Teammate
 end
 
-feature "Persisting models" do
-  let(:store)    { Redistent::DataStore.new(:redis, Redis, redis_config) }
-  let(:queue)    { Queue.new(name: "Masada") }
-  let(:teammate) { Teammate.new(name: "John Zorn") }
-  let(:skill)    { Skill.new(queue: queue, teammate: teammate, level: 50) }
-  let(:task)     { Task.new(title: "Alef")}
+class Accessor
+  include Redistent::Accessor
+  model :queue do
+    embeds :tasks, score: ->(task) { task.created_ts } do
+      define(:count)   { |key| key.zcard }
+      define(:next_id) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
+    end
+    collection :skills
+    collection :teammates, through: :skills
+  end
+  model :teammate do
+    references :team
+    collection :skills
+    collection :queues, through: :skills
+  end
+  model :skill do
+    references :queue
+    references :teammate
+  end
+end
 
-  scenario "Save and reload a model" do
+feature "persisting models" do
+  let(:store) { Redistent::DataStore.new(Accessor.new, redis_config) }
+
+  scenario "save, reload and delete a model" do
+    queue = Queue.new(name: "fix bugs")
     store.save(queue)
-    expect(store.get(:queue, queue.id).name).to eq("Masada")
+
+    reloaded = store.get(:queue, queue.id)
+    expect(reloaded.name).to eq("fix bugs")
+    expect(reloaded).to eq(queue)
+
+    store.delete(reloaded)
+    expect(store.get(:queue, queue.id)).to be_nil
+  end
+
+  scenario "save a model with references and reload it with references" do
+    queue = Queue.new(name: "fix bugs")
+    teammate = Teammate.new(name: "John Doe")
+    skill = Skill.new(queue: queue, teammate: teammate, level: 50)
+    store.save(skill)
+
+    reloaded = store.get(:skill, skill.id)
+    expect(reloaded.level).to eq(skill.level)
+    expect(reloaded.queue).to eq(skill.queue)
+    expect(reloaded.teammate).to eq(skill.teammate)
+    expect(reloaded).to eq(skill)
+  end
+
+  scenario "query a model's referrers" do
+    team = Team.new(name: "engineering")
+    teammate = Teammate.new(name: "John Doe", team: team)
+    other = Teammate.new(name: "Jane Doe", team: team)
+    store.save(teammate, other)
+    reloaded_team = store.get(:team, teammate.team.id)
+
+    referrers = store.referenced_by(reloaded_team, :teammates)
+    expect(referrers.count).to eq(2)
+    expect(referrers.all.map(&:name).sort).to eq(["Jane Doe", "John Doe"])
+  end
+
+  scenario "query a model's embedded collection" do
+    queue = Queue.new(name: "fix bugs")
+    task1 = Task.new(title: "bug #123")
+    task2 = Task.new(title: "bug #456")
+    store.save(queue, task1, task2)
+
+    collection = store.embedded_in(queue, :tasks)
+    collection << task2
+    collection << task1
+
+    queue = store.get(:queue, queue.id)
+    collection = store.embedded_in(queue, :tasks)
+    expect(collection.count).to eq(2)
+    expect(collection.next_id).to eq(task2)
   end
 end
