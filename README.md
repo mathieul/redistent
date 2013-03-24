@@ -1,5 +1,7 @@
 # Redistent
 
+[![Build Status](https://secure.travis-ci.org/mathieul/redistent.png)](http://travis-ci.org/mathieul/redistent)
+
 Light persistent layer for Ruby objects using Redis and a centralized persister object.
 
 ## Installation
