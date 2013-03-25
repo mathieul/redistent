@@ -82,14 +82,26 @@ class PersistentAccessor
   end
 end
 
+accessor = PersistentAccessor.new(url: "redis://127.0.0.1:6379/7")
+
+# write/read/erase
 bug_queue = TaskQueue.new(name: "fix bugs")
 accessor.write(bug_queue)
 feature_queue = accessor.read(:queue, "id123")
 accessor.erase(bug_queue)
 
-num_teammates = accessor.collection(feature_queue, :teammates).count
-accessor.collection(feature_queue, :tasks) << Task.new(title: "generate csv report")
-next_task_id = accessor.collection(feature_queue, :tasks).next_id
+# collection of referrers
+skill_collection = accessor.collection(feature_queue, :skills)
+num_skills = skill_collection.count
+all_skills = skill_collection.all
+
+# collection of indirect referrers
+all_teammates = accessor.collection(feature_queue, :teammates).all
+
+# collection of embedded objects
+task_collection = accessor.collection(feature_queue, :tasks)
+task_collection << Task.new(title: "generate csv report")
+next_task_id = task_collection.next_id
 ```
 
 ## Contributing
