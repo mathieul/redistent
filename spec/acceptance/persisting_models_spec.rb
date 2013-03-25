@@ -40,17 +40,15 @@ class PersistentAccessor
   include Redistent::Accessor
   before_write :valid?
   model :queue do
-    embeds :tasks, score: ->(task) { task.created_ts } do
+    embeds :tasks, sort_by: :queued_at do
       define(:count)   { |key| key.zcard }
       define(:next_id) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
     end
-    collection :skills
-    collection :teammates, through: :skills
+    collection :teammates, via: :skills
   end
   model :teammate do
     references :team
-    collection :skills
-    collection :queues, through: :skills
+    collection :queues, via: :skills
   end
   model :skill do
     references :queue
