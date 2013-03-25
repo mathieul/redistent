@@ -1,5 +1,7 @@
 # Redistent
 
+<div style="color: red; font-weight: bold;">WORK IN PROGRESS: this gem is neither code complete, neither usable at the moment.</div>
+
 [![Build Status](https://secure.travis-ci.org/mathieul/redistent.png)](http://travis-ci.org/mathieul/redistent)
 [![Dependency Status](https://gemnasium.com/mathieul/redistent.png)](https://gemnasium.com/mathieul/redistent)
 [![Code Climate](https://codeclimate.com/github/mathieul/redistent.png)](https://codeclimate.com/github/mathieul/redistent)
@@ -24,43 +26,71 @@ Or install it yourself as:
 
 ## Usage
 
-    class Queue
+    ```ruby
+    class TaskQueue
       include Virtus
+      attr_reader :id
       attribute :name, String
-      embeds :tasks, score: ->(task) { task.created_ts } do
-        # key = "Queue:123:task_ids"
-        define(:count)   { |key| key.zcard }
-        define(:next_id) { |key| key.command(...read next id...) }
-      end
-    end
-
-    class Teammate
     end
 
     class Task
+      include Virtus
+      attr_reader :id
+      attribute :title, String
+      attribute :queue, TaskQueue
+      attribute :queued_at, DateTime
+    end
+
+    class Team
+      include Virtus
+      attr_reader :id
+      attribute :name, String
+    end
+
+    class Teammate
+      include Virtus
+      attr_reader :id
+      attribute :name, String
+      attribute :team, Team
     end
 
     class Skill
-      references :teammate do
-        # key = "Skill:indices:teammate_id"
-        save { |model, key|
-          # "#{key}:old123": srem model.id
-          # "#{key}:new456": sadd model.id
-        }
-        del { |model, key| # "#{key}:id789": srem model.id }
-      end
-      references :queue
+      include Virtus
+      attr_reader :id
+      attribute :level, Integer
+      attribute :queue, TaskQueue
+      attribute :teammate, Teammate
     end
 
-    queue = Queue.new(name)
+    class PersistentAccessor
+      include Redistent::Accessor
+      before_write :valid?
+      model :queue do
+        embeds :tasks, sort_by: :queued_at do
+          define(:count)   { |key| key.zcard }
+          define(:next_id) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
+        end
+        collection :teammates, via: :skills
+      end
+      model :teammate do
+        references :team
+        collection :queues, via: :skills
+      end
+      model :skill do
+        references :queue
+        references :teammate
+      end
+    end
 
-    store.save(queue, task)
-    store.get(:queue, queue_id) # any reference is instantiated?
-    store.delete(task)
-    store.referenced_by(queue).skills.all
-    store.embedded_in(queue).tasks << task
-    store.embedded_in(queue).tasks.count
-    store.embedded_in(queue).tasks.next_id
+    bug_queue = TaskQueue.new(name: "fix bugs")
+    accessor.write(bug_queue)
+    feature_queue = accessor.read(:queue, "id123")
+    accessor.erase(bug_queue)
+
+    num_teammates = accessor.collection(feature_queue, :teammates).count
+    accessor.collection(feature_queue, :tasks) << Task.new(title: "generate csv report")
+    next_task_id = accessor.collection(feature_queue, :tasks).next_id
+    ```
 
 ## Contributing
 
