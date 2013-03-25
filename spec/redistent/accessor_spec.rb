@@ -3,6 +3,11 @@ require "spec_helper"
 describe Redistent::Accessor do
   let(:klass) { Class.new.tap { |klass| klass.send(:include, Redistent::Accessor) } }
 
+  it "is initialized with redis config" do
+    accessor = klass.new(url: "redis://127.0.0.1:6379/7")
+    expect(accessor.db.client.port).to eq(6379)
+  end
+
   context "DSL" do
     let(:config) { klass.config }
 

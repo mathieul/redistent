@@ -1,3 +1,5 @@
+require "redis"
+
 module Redistent
   module Accessor
     def self.included(base)
@@ -7,6 +9,21 @@ module Redistent
           @config ||= Config.new
         end
       end
+    end
+
+    attr_reader :db
+
+    def initialize(config)
+      @db = Redis.new(config)
+    end
+
+    def write(*args)
+    end
+
+    def read(*args)
+    end
+
+    def collection(*args)
     end
 
     module ClassMethods
