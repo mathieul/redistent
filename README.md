@@ -26,71 +26,71 @@ Or install it yourself as:
 
 ## Usage
 
-    ```ruby
-    class TaskQueue
-      include Virtus
-      attr_reader :id
-      attribute :name, String
+```ruby
+class TaskQueue
+  include Virtus
+  attr_reader :id
+  attribute :name, String
+end
+
+class Task
+  include Virtus
+  attr_reader :id
+  attribute :title, String
+  attribute :queue, TaskQueue
+  attribute :queued_at, DateTime
+end
+
+class Team
+  include Virtus
+  attr_reader :id
+  attribute :name, String
+end
+
+class Teammate
+  include Virtus
+  attr_reader :id
+  attribute :name, String
+  attribute :team, Team
+end
+
+class Skill
+  include Virtus
+  attr_reader :id
+  attribute :level, Integer
+  attribute :queue, TaskQueue
+  attribute :teammate, Teammate
+end
+
+class PersistentAccessor
+  include Redistent::Accessor
+  before_write :valid?
+  model :queue do
+    embeds :tasks, sort_by: :queued_at do
+      define(:count)   { |key| key.zcard }
+      define(:next_id) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
     end
+    collection :teammates, via: :skills
+  end
+  model :teammate do
+    references :team
+    collection :queues, via: :skills
+  end
+  model :skill do
+    references :queue
+    references :teammate
+  end
+end
 
-    class Task
-      include Virtus
-      attr_reader :id
-      attribute :title, String
-      attribute :queue, TaskQueue
-      attribute :queued_at, DateTime
-    end
+bug_queue = TaskQueue.new(name: "fix bugs")
+accessor.write(bug_queue)
+feature_queue = accessor.read(:queue, "id123")
+accessor.erase(bug_queue)
 
-    class Team
-      include Virtus
-      attr_reader :id
-      attribute :name, String
-    end
-
-    class Teammate
-      include Virtus
-      attr_reader :id
-      attribute :name, String
-      attribute :team, Team
-    end
-
-    class Skill
-      include Virtus
-      attr_reader :id
-      attribute :level, Integer
-      attribute :queue, TaskQueue
-      attribute :teammate, Teammate
-    end
-
-    class PersistentAccessor
-      include Redistent::Accessor
-      before_write :valid?
-      model :queue do
-        embeds :tasks, sort_by: :queued_at do
-          define(:count)   { |key| key.zcard }
-          define(:next_id) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
-        end
-        collection :teammates, via: :skills
-      end
-      model :teammate do
-        references :team
-        collection :queues, via: :skills
-      end
-      model :skill do
-        references :queue
-        references :teammate
-      end
-    end
-
-    bug_queue = TaskQueue.new(name: "fix bugs")
-    accessor.write(bug_queue)
-    feature_queue = accessor.read(:queue, "id123")
-    accessor.erase(bug_queue)
-
-    num_teammates = accessor.collection(feature_queue, :teammates).count
-    accessor.collection(feature_queue, :tasks) << Task.new(title: "generate csv report")
-    next_task_id = accessor.collection(feature_queue, :tasks).next_id
-    ```
+num_teammates = accessor.collection(feature_queue, :teammates).count
+accessor.collection(feature_queue, :tasks) << Task.new(title: "generate csv report")
+next_task_id = accessor.collection(feature_queue, :tasks).next_id
+```
 
 ## Contributing
 
