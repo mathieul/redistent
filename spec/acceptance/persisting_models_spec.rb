@@ -1,18 +1,18 @@
 require "acceptance_helper"
 require "virtus"
 
+class TaskQueue
+  include Virtus
+  attr_reader :id
+  attribute :name, String
+end
+
 class Task
   include Virtus
   attr_reader :id
   attribute :title, String
-  attribute :queue, Queue
+  attribute :queue, TaskQueue
   attribute :queued_at, DateTime
-end
-
-class Queue
-  include Virtus
-  attr_reader :id
-  attribute :name, String
 end
 
 class Team
@@ -32,7 +32,7 @@ class Skill
   include Virtus
   attr_reader :id
   attribute :level, Integer
-  attribute :queue, Queue
+  attribute :queue, TaskQueue
   attribute :teammate, Teammate
 end
 
@@ -60,7 +60,7 @@ feature "persisting models" do
   let(:accessor) { PersistentAccessor.new(redis_config) }
 
   scenario "write, reload and erase a model" do
-    queue = Queue.new(name: "fix bugs")
+    queue = TaskQueue.new(name: "fix bugs")
     accessor.write(queue)
 
     reloaded = accessor.read(:queue, queue.id)
@@ -71,7 +71,7 @@ feature "persisting models" do
   end
 
   scenario "write a model with references and reload it with references" do
-    queue = Queue.new(name: "fix bugs")
+    queue = TaskQueue.new(name: "fix bugs")
     teammate = Teammate.new(name: "John Doe")
     skill = Skill.new(queue: queue, teammate: teammate, level: 50)
     accessor.write(skill)
@@ -95,7 +95,7 @@ feature "persisting models" do
   end
 
   scenario "query a model's embedded collection" do
-    queue = Queue.new(name: "fix bugs")
+    queue = TaskQueue.new(name: "fix bugs")
     task1 = Task.new(title: "bug #123")
     task2 = Task.new(title: "bug #456")
     accessor.write(queue, task1, task2)
