@@ -1,16 +1,22 @@
 module Redistent
   class Config
-    attr_reader :hooks, :models, :current_model, :current_collection
+    attr_reader :current_model, :current_collection
+
+    def hooks
+      @hooks ||= {}
+    end
+
+    def models
+      @models ||= {}
+    end
 
     def add_hook(name, message)
-      @hooks ||= {}
-      (@hooks[name] ||= []) << message
+      (hooks[name] ||= []) << message
     end
 
     def add_model(name, &block)
-      @models ||= {}
-      definition = @models[name] ||= {}
-      definition[:persist_attributes] = true
+      definition = models[name] ||= {}
+      definition.merge!(persist_attributes: true, hooks: hooks)
       with_model(definition, &block) if block_given?
     end
 
