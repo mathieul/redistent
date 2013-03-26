@@ -29,4 +29,13 @@ describe Redistent::Accessor do
       expect(block_caller).to eq(config)
     end
   end
+
+  context "operations delegation" do
+    let(:accessor) { klass.new(redis_config) }
+
+    it "delegates #write to a writer" do
+      Redistent::Writer.any_instance.should_receive(:write).with(:the, :arguments)
+      accessor.write(:the, :arguments)
+    end
+  end
 end

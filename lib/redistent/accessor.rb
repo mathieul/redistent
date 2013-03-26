@@ -13,19 +13,6 @@ module Redistent
 
     attr_reader :db
 
-    def initialize(config)
-      @db = Redis.new(config)
-    end
-
-    def write(*args)
-    end
-
-    def read(*args)
-    end
-
-    def collection(*args)
-    end
-
     module ClassMethods
       def model(name, &block)
         config.add_model(name, &block)
@@ -34,6 +21,26 @@ module Redistent
       def before_write(message)
         config.add_hook(:before_write, message)
       end
+    end
+
+    def initialize(config)
+      @db = Redis.new(config)
+    end
+
+    def write(*args)
+      writer.write(*args)
+    end
+
+    def read(*args)
+    end
+
+    def collection(*args)
+    end
+
+    private
+
+    def writer
+      @writer ||= Writer.new(self.class.config.models)
     end
   end
 end
