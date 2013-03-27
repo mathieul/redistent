@@ -5,7 +5,7 @@ describe Redistent::Accessor do
 
   it "is initialized with redis config" do
     accessor = klass.new(url: "redis://127.0.0.1:6379/7")
-    expect(accessor.db.client.port).to eq(6379)
+    expect(accessor.key.redis.client.port).to eq(6379)
   end
 
   context "DSL" do

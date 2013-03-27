@@ -3,13 +3,13 @@ require "virtus"
 
 class TaskQueue
   include Virtus
-  attr_reader :id
+  attr_accessor :id
   attribute :name, String
 end
 
 class Task
   include Virtus
-  attr_reader :id
+  attr_accessor :id
   attribute :title, String
   attribute :queue, TaskQueue
   attribute :queued_at, DateTime
@@ -17,20 +17,20 @@ end
 
 class Team
   include Virtus
-  attr_reader :id
+  attr_accessor :id
   attribute :name, String
 end
 
 class Teammate
   include Virtus
-  attr_reader :id
+  attr_accessor :id
   attribute :name, String
   attribute :team, Team
 end
 
 class Skill
   include Virtus
-  attr_reader :id
+  attr_accessor :id
   attribute :level, Integer
   attribute :queue, TaskQueue
   attribute :teammate, Teammate

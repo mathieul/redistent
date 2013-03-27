@@ -1,4 +1,5 @@
 require "redis"
+require "nest"
 
 module Redistent
   module Accessor
@@ -11,7 +12,7 @@ module Redistent
       end
     end
 
-    attr_reader :db
+    attr_reader :key
 
     module ClassMethods
       def model(name, &block)
@@ -24,7 +25,8 @@ module Redistent
     end
 
     def initialize(config)
-      @db = Redis.new(config)
+      redis = Redis.new(config)
+      @key = Nest.new("redistent", redis)
     end
 
     def write(*args)
@@ -40,7 +42,7 @@ module Redistent
     private
 
     def writer
-      @writer ||= Writer.new(self.class.config.models)
+      @writer ||= Writer.new(key, self.class.config.models)
     end
   end
 end
