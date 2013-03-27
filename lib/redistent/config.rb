@@ -2,6 +2,16 @@ module Redistent
   class Config
     attr_reader :current_model, :current_collection
 
+    ModelDescription = Struct.new(
+      :persist_attributes, :hooks, :references, :collections
+    )
+    ReferenceDescription = Struct.new(
+      :model, :attribute
+    )
+    CollectionDescription = Struct.new(
+      :type, :sort_by, :model, :attribute, :target, :target_attribute, :methods
+    )
+
     def hooks
       @hooks ||= {}
     end
@@ -15,50 +25,43 @@ module Redistent
     end
 
     def add_model(name, &block)
-      definition = models[name] ||= {}
-      definition.merge!(persist_attributes: true, hooks: hooks)
+      definition = models[name] ||= ModelDescription.new(true, hooks)
       with_model(definition, &block) if block_given?
     end
 
     def references(name)
-      reference = {model: name, attribute: :"#{name}_id"}
-      (current_model[:references] ||= []) << reference
+      reference = ReferenceDescription.new(name, :"#{name}_id")
+      (current_model.references ||= []) << reference
     end
 
     def embeds(name, sort_by: false, &block)
       singular_name = name.to_s.singularize.to_sym
-      collection = {
-        type: :embedded,
-        sort_by: sort_by,
-        model: singular_name,
-        attribute: :"#{singular_name}_id"
-      }
+      collection = CollectionDescription.new(
+        :embedded, sort_by, singular_name, :"#{singular_name}_id"
+      )
       if block_given?
-        collection[:methods] = {}
+        collection.methods = {}
         with_collection(collection, &block)
       end
-      (current_model[:collections] ||= []) << collection
+      (current_model.collections ||= []) << collection
     end
 
     def collection(name, via: nil)
       singular_name = name.to_s.singularize.to_sym
-      collection = {
-        type: :referenced,
-        model: singular_name,
-        attribute: :"#{singular_name}_id"
-      }
+      collection = CollectionDescription.new(
+        :referenced, nil, singular_name, :"#{singular_name}_id"
+      )
       unless via.nil?
-        singular_via = via.to_s.singularize.to_sym
-        collection.merge!(
-          target: collection[:model], target_attribute: collection[:attribute],
-          model: singular_via, attribute: :"#{singular_via}_id"
-        )
+        model, attribute = collection.model, collection.attribute
+        collection.model = via.to_s.singularize.to_sym
+        collection.attribute = :"#{collection.model}_id"
+        collection.target, collection.target_attribute = model, attribute
       end
-      (current_model[:collections] ||= []) << collection
+      (current_model.collections ||= []) << collection
     end
 
     def define(name, &block)
-      current_collection[:methods][name] = block
+      current_collection.methods[name] = block
     end
 
     private
