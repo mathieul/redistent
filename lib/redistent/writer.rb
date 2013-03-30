@@ -16,6 +16,7 @@ module Redistent
           model_key = key[model.class.to_s]
           push_id(model_key, model)
           store_attributes(model_key, model)
+          model.persisted!
         end
       end
     end
@@ -47,10 +48,14 @@ module Redistent
       unless (description = models[model_type])
         raise ConfigError, "Model #{model_type.inspect} hasn't been described"
       end
-      attributes = model.attributes
-      Array(description.references).each do |reference|
+      replace_references_with_ids(description.references, model.attributes)
+    end
+
+    def replace_references_with_ids(model_references, attributes)
+      Array(model_references).each do |reference|
         if attributes.has_key?(reference.model)
           referenced = attributes.delete(reference.model)
+          write(referenced) unless referenced.persisted?
           attributes[reference.attribute] = referenced.id
         end
       end
