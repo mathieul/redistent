@@ -18,14 +18,13 @@ module Redistent
           store_attributes(model_key, model)
         end
       end
-      models.each { |model| model.persisted! }
     end
-
-    private
 
     def next_id
       key["next_id"].incr.to_s
     end
+
+    private
 
     def assign_id_if_absent(models)
       models.each do |model|
@@ -55,7 +54,7 @@ module Redistent
       Array(model_references).each do |reference|
         if attributes.has_key?(reference.model)
           referenced = attributes.delete(reference.model)
-          write(referenced) unless referenced.persisted?
+          write(referenced) unless referenced.id
           attributes[reference.attribute] = referenced.id
         end
       end

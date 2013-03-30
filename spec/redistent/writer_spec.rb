@@ -9,12 +9,6 @@ class Band
   def complete?
     name && name.length > 0
   end
-  def persisted!
-    @persisted = true
-  end
-  def persisted?
-    !!@persisted
-  end
 end
 
 class Musician
@@ -24,12 +18,6 @@ class Musician
   attribute :band, Band
   def complete?
     band && name && name.length > 0
-  end
-  def persisted!
-    @persisted = true
-  end
-  def persisted?
-    !!@persisted
   end
 end
 
@@ -41,12 +29,6 @@ class Instrument
   attribute :musician, Musician
   def complete?
     name && type && musician
-  end
-  def persisted!
-    @persisted = true
-  end
-  def persisted?
-    !!@persisted
   end
 end
 
@@ -63,36 +45,38 @@ describe Redistent::Writer do
     end
   end
   let(:writer)    { Redistent::Writer.new(key, config.models) }
-  let(:metallica) { Band.new(id: "42", name: "Metallica") }
-  let(:james)     { Musician.new(id: "12", name: "James Hetfield", band: metallica) }
-  let(:guitar)    { Instrument.new(id: "7" ,name: "Jame's guitar", type: "guitar", musician: james) }
+  let(:metallica) { Band.new(name: "Metallica") }
+  let(:james)     { Musician.new(name: "James Hetfield", band: metallica) }
+  let(:guitar)    { Instrument.new(name: "Jame's guitar", type: "guitar", musician: james) }
 
   context "write simple model" do
+    it "can get the next id" do
+      expect(writer.next_id).to eq("1")
+    end
+
     it "sets the model id if not set" do
-      metallica.id = nil
+      writer.should_receive(:next_id).and_return("123")
       writer.write(metallica)
-      expect(metallica.id).to eq("1")
+      expect(metallica.id).to eq("123")
     end
 
     it "doesn't set the model id if already set" do
+      metallica.id = "42"
       writer.write(metallica)
       expect(metallica.id).to eq("42")
     end
 
     it "adds the model id to the list of all model ids" do
+      writer.should_receive(:next_id).and_return("456")
       writer.write(metallica)
-      expect(redis.smembers("writer:Band:all")).to eq(["42"])
+      expect(redis.smembers("writer:Band:all")).to eq(["456"])
     end
 
     it "stores the model attributes" do
+      writer.should_receive(:next_id).and_return("789")
       writer.write(metallica)
-      attributes = BSON.deserialize(redis.get("writer:Band:42"))
+      attributes = BSON.deserialize(redis.get("writer:Band:789"))
       expect(attributes).to eq("name" => "Metallica")
-    end
-
-    it "tells the model it has been persisted" do
-      metallica.should_receive(:persisted!)
-      writer.write(metallica)
     end
 
     it "raises an error if the model is not described" do
@@ -104,16 +88,18 @@ describe Redistent::Writer do
       expect { writer.write(metallica, james) }.to raise_error("simulated error")
       expect(redis.smembers("writer:Band:all")).to be_empty
       expect(redis.smembers("writer:Musician:all")).to be_empty
-      expect(metallica).to_not be_persisted
+      expect(metallica.id).to be_nil
     end
   end
 
   context "write model with reference" do
     it "saves the reference id instead of the object" do
+      writer.should_receive(:next_id).and_return("123")
+      writer.should_receive(:next_id).and_return("456")
       writer.write(metallica)
       writer.write(james)
-      attributes = BSON.deserialize(redis.get("writer:Musician:12"))
-      expect(attributes).to eq("name" => "James Hetfield", "band_id" => "42")
+      attributes = BSON.deserialize(redis.get("writer:Musician:456"))
+      expect(attributes).to eq("name" => "James Hetfield", "band_id" => "123")
     end
 
     it "saves the referenced objects if necessary" do
