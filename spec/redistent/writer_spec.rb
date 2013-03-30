@@ -83,7 +83,7 @@ describe Redistent::Writer do
       expect { writer.write(guitar) }.to raise_error(Redistent::ConfigError)
     end
 
-    it "saves in a transactions all models passed to be written" do
+    it "saves all models passed to be written in a transaction" do
       james.should_receive(:attributes).and_raise("simulated error")
       expect { writer.write(metallica, james) }.to raise_error("simulated error")
       expect(redis.smembers("writer:Band:all")).to be_empty
