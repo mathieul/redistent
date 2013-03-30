@@ -90,13 +90,21 @@ describe Redistent::Writer do
       expect(attributes).to eq("name" => "Metallica")
     end
 
-    it "knows when a model has been persisted" do
+    it "tells the model it has been persisted" do
+      metallica.should_receive(:persisted!)
       writer.write(metallica)
-      expect(metallica).to be_persisted
     end
 
     it "raises an error if the model is not described" do
       expect { writer.write(guitar) }.to raise_error(Redistent::ConfigError)
+    end
+
+    it "saves in a transactions all models passed to be written" do
+      james.should_receive(:attributes).and_raise("simulated error")
+      expect { writer.write(metallica, james) }.to raise_error("simulated error")
+      expect(redis.smembers("writer:Band:all")).to be_empty
+      expect(redis.smembers("writer:Musician:all")).to be_empty
+      expect(metallica).to_not be_persisted
     end
   end
 

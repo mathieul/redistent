@@ -16,9 +16,9 @@ module Redistent
           model_key = key[model.class.to_s]
           push_id(model_key, model)
           store_attributes(model_key, model)
-          model.persisted!
         end
       end
+      models.each { |model| model.persisted! }
     end
 
     private
