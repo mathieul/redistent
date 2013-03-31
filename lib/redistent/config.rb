@@ -30,14 +30,14 @@ module Redistent
     end
 
     def references(name)
-      reference = ReferenceDescription.new(name, :"#{name}_id")
+      reference = ReferenceDescription.new(name, :"#{name}_uid")
       (current_model.references ||= []) << reference
     end
 
     def embeds(name, sort_by: false, &block)
       singular_name = name.to_s.singularize.to_sym
       collection = CollectionDescription.new(
-        :embedded, sort_by, singular_name, :"#{singular_name}_id"
+        :embedded, sort_by, singular_name, :"#{singular_name}_uid"
       )
       if block_given?
         collection.methods = {}
@@ -49,12 +49,12 @@ module Redistent
     def collection(name, via: nil)
       singular_name = name.to_s.singularize.to_sym
       collection = CollectionDescription.new(
-        :referenced, nil, singular_name, :"#{singular_name}_id"
+        :referenced, nil, singular_name, :"#{singular_name}_uid"
       )
       unless via.nil?
         model, attribute = collection.model, collection.attribute
         collection.model = via.to_s.singularize.to_sym
-        collection.attribute = :"#{collection.model}_id"
+        collection.attribute = :"#{collection.model}_uid"
         collection.target, collection.target_attribute = model, attribute
       end
       (current_model.collections ||= []) << collection

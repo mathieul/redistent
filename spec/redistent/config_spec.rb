@@ -21,7 +21,7 @@ describe Redistent::Config do
       expect(config.models[:queue]).to have(1).references
       reference = config.models[:queue].references.first
       expect(reference.model).to eq(:team)
-      expect(reference.attribute).to eq(:team_id)
+      expect(reference.attribute).to eq(:team_uid)
     end
 
     it "defines an embedded collection with #embeds" do
@@ -33,7 +33,7 @@ describe Redistent::Config do
       expect(collection.type).to eq(:embedded)
       expect(collection.sort_by).to be_false
       expect(collection.model).to eq(:task)
-      expect(collection.attribute).to eq(:task_id)
+      expect(collection.attribute).to eq(:task_uid)
     end
 
     it "defines a sorted embedded collection with #embeds with a sort_by option" do
@@ -62,9 +62,9 @@ describe Redistent::Config do
       collection = config.models[:queue].collections.first
       expect(collection.type).to eq(:referenced)
       expect(collection.model).to eq(:skill)
-      expect(collection.attribute).to eq(:skill_id)
+      expect(collection.attribute).to eq(:skill_uid)
       expect(collection.target).to eq(:teammate)
-      expect(collection.target_attribute).to eq(:teammate_id)
+      expect(collection.target_attribute).to eq(:teammate_uid)
     end
   end
 
