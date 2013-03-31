@@ -32,7 +32,7 @@ module Redistent
       models.each.with_object({}) do |model, found|
         found[model] = next_uid if model.uid.nil?
         attributes = model.attributes
-        Array(describe(model).references).each do |reference|
+        describe(model).references.each do |reference|
           referenced = attributes[reference.model]
           found[referenced] = next_uid if referenced.uid.nil?
         end
@@ -74,7 +74,7 @@ module Redistent
     end
 
     def replace_references_with_uids(model_references, attributes)
-      Array(model_references).each do |reference|
+      model_references.each do |reference|
         if attributes.has_key?(reference.model)
           referenced = attributes.delete(reference.model)
           write(referenced)
@@ -86,7 +86,7 @@ module Redistent
 
     def index_model_references(model, references, attributes)
       key = model_key(model)["indices"]
-      Array(references).each do |reference|
+      references.each do |reference|
         persisted_value = model.persisted_attributes[reference.attribute] unless model.persisted_attributes.nil?
         value = attributes[reference.attribute]
         next if persisted_value == value

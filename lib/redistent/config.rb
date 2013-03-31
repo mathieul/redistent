@@ -25,7 +25,7 @@ module Redistent
     end
 
     def add_model(name, &block)
-      definition = models[name] ||= ModelDescription.new(true, hooks)
+      definition = models[name] ||= ModelDescription.new(true, hooks, [])
       with_model(definition, &block) if block_given?
     end
 
