@@ -4,7 +4,7 @@ require "bson"
 
 class Band
   include Virtus
-  attr_accessor :uid
+  attr_accessor :uid, :persisted_attributes
   attribute :name, String
   def complete?
     name && name.length > 0
@@ -13,7 +13,7 @@ end
 
 class Musician
   include Virtus
-  attr_accessor :uid
+  attr_accessor :uid, :persisted_attributes
   attribute :name, String
   attribute :band, Band
   def complete?
@@ -23,7 +23,7 @@ end
 
 class Instrument
   include Virtus
-  attr_accessor :uid
+  attr_accessor :uid, :persisted_attributes
   attribute :name, String
   attribute :type, String
   attribute :musician, Musician
@@ -120,14 +120,14 @@ describe Redistent::Writer do
       expect(redis.smembers("writer:Musician:indices:band_uid:M39")).to eq(["J40"])
     end
 
-    it "removes old references when updating a model" do
-      suicidal = Band.new(id: "S43", name: "Suicidal Tendencies")
-      bob = Musician.new(id: "B44", name: "Robert Trujillo", band: suicidal)
+    it "removes old references when updating a model", wip: true do
+      suicidal = Band.new(uid: "S43", name: "Suicidal Tendencies")
+      bob = Musician.new(uid: "B44", name: "Robert Trujillo", band: suicidal)
       writer.write(bob)
-      expect(redis.smembers("writer:Musician:indices:band_uid:S43")).to eq("B44")
-      metallica.id = "M39"
+      expect(redis.smembers("writer:Musician:indices:band_uid:S43")).to eq(["B44"])
+      metallica.uid = "M39"
       bob.band = metallica
-      write.write(bob)
+      writer.write(bob)
       expect(redis.smembers("writer:Musician:indices:band_uid:S43")).to be_empty
       expect(redis.smembers("writer:Musician:indices:band_uid:M39")).to eq(["B44"])
     end
