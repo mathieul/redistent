@@ -48,6 +48,7 @@ describe Redistent::Writer do
   let(:metallica) { Band.new(name: "Metallica") }
   let(:james)     { Musician.new(name: "James Hetfield", band: metallica) }
   let(:guitar)    { Instrument.new(name: "Jame's guitar", type: "guitar", musician: james) }
+  let(:mock_next_uids) { ->(uid) { writer.should_receive(:next_uid).and_return(uid) } }
 
   context "write simple model" do
     it "can get the next uid" do
@@ -55,7 +56,7 @@ describe Redistent::Writer do
     end
 
     it "sets the model uid if not set" do
-      writer.should_receive(:next_uid).and_return("123")
+      mock_next_uids.call("123")
       writer.write(metallica)
       expect(metallica.uid).to eq("123")
     end
@@ -67,13 +68,13 @@ describe Redistent::Writer do
     end
 
     it "adds the model uid to the list of all model uids" do
-      writer.should_receive(:next_uid).and_return("456")
+      mock_next_uids.call("456")
       writer.write(metallica)
       expect(redis.smembers("writer:Band:all")).to eq(["456"])
     end
 
     it "stores the model attributes" do
-      writer.should_receive(:next_uid).and_return("789")
+      mock_next_uids.call("789")
       writer.write(metallica)
       attributes = BSON.deserialize(redis.get("writer:Band:789"))
       expect(attributes).to eq("name" => "Metallica")
@@ -94,8 +95,7 @@ describe Redistent::Writer do
 
   context "write model with reference" do
     it "saves the reference uid instead of the object" do
-      writer.should_receive(:next_uid).and_return("123")
-      writer.should_receive(:next_uid).and_return("456")
+      %w[123 456].each(&mock_next_uids)
       writer.write(metallica)
       writer.write(james)
       attributes = BSON.deserialize(redis.get("writer:Musician:456"))
@@ -106,13 +106,30 @@ describe Redistent::Writer do
       config.add_model :instrument do
         references :musician
       end
-      guitar.uid = "7"
-      guitar.musician.uid = "12"
-      guitar.musician.band.uid = "42"
+      %w[7 12 42].each(&mock_next_uids)
       writer.write(guitar)
       expect(redis.smembers("writer:Instrument:all")).to eq(["7"])
       expect(redis.smembers("writer:Musician:all")).to eq(["12"])
       expect(redis.smembers("writer:Band:all")).to eq(["42"])
+    end
+
+    it "saves an index per reference" do
+      metallica.uid = "M39"
+      james.uid = "J40"
+      writer.write(james)
+      expect(redis.smembers("writer:Musician:indices:band_uid:M39")).to eq(["J40"])
+    end
+
+    it "removes old references when updating a model" do
+      suicidal = Band.new(id: "S43", name: "Suicidal Tendencies")
+      bob = Musician.new(id: "B44", name: "Robert Trujillo", band: suicidal)
+      writer.write(bob)
+      expect(redis.smembers("writer:Musician:indices:band_uid:S43")).to eq("B44")
+      metallica.id = "M39"
+      bob.band = metallica
+      write.write(bob)
+      expect(redis.smembers("writer:Musician:indices:band_uid:S43")).to be_empty
+      expect(redis.smembers("writer:Musician:indices:band_uid:M39")).to eq(["B44"])
     end
   end
 end

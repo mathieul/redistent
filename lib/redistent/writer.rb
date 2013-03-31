@@ -16,9 +16,11 @@ module Redistent
         model_uids.each { |model, uid| model.uid = uid }
         models.each do |model|
           model.uid ||= model_uids[model]
-          model_key = key[model.class.to_s]
-          push_uid(model_key, model)
-          store_attributes(model_key, model)
+          push_uid(model)
+          references = describe(model).references
+          attributes = model_attributes(references, model.attributes)
+          store_attributes(model, attributes)
+          index_model_references(model, references, attributes)
         end
       end
     rescue Exception => ex
@@ -43,14 +45,17 @@ module Redistent
 
     private
 
-    def push_uid(model_key, model)
-      model_key["all"].sadd(model.uid)
+    def model_key(model)
+      key[model.class.to_s]
     end
 
-    def store_attributes(model_key, model)
-      attributes = model_attributes(model)
+    def push_uid(model)
+      model_key(model)["all"].sadd(model.uid)
+    end
+
+    def store_attributes(model, attributes)
       serialized = BSON.serialize(attributes)
-      model_key[model.uid].set(serialized.to_s)
+      model_key(model)[model.uid].set(serialized.to_s)
     end
 
     def describe(model)
@@ -63,8 +68,8 @@ module Redistent
       end
     end
 
-    def model_attributes(model)
-      replace_references_with_uids(describe(model).references, model.attributes)
+    def model_attributes(references, attributes)
+      replace_references_with_uids(references, attributes)
     end
 
     def replace_references_with_uids(model_references, attributes)
@@ -76,6 +81,15 @@ module Redistent
         end
       end
       attributes
+    end
+
+    def index_model_references(model, references, attributes)
+      key = model_key(model)["indices"]
+      Array(references).each do |reference|
+        if (value = attributes[reference.attribute])
+          key[reference.attribute][value].sadd(model.uid)
+        end
+      end
     end
   end
 end
