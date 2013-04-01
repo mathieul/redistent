@@ -2,7 +2,10 @@ require "pry"
 require "redis"
 require "coveralls"
 
-require File.join(__dir__, "..", "lib", "redistent")
+$LOAD_PATH << File.expand_path("../lib", __dir__)
+$LOAD_PATH << File.expand_path("support", __dir__)
+
+require "redistent"
 
 Coveralls.wear!
 
