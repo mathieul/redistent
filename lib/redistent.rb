@@ -1,7 +1,9 @@
 require "redistent/version"
 
 module Redistent
-  ConfigError = Class.new(StandardError)
+  RedistentError = Class.new(StandardError)
+  ConfigError    = Class.new(RedistentError)
+  ModelNotFound  = Class.new(RedistentError)
 end
 
 require "redistent/core_extensions"

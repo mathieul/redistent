@@ -1,18 +1,11 @@
 require "spec_helper"
+require "redis_helper"
 require "music_classes"
 
 describe Redistent::Writer do
-  let(:redis)     { Redis.new(redis_config) }
+  include RedisHelper
+
   let(:key)       { Nest.new("writer", redis) }
-  let(:config) do
-    Redistent::Config.new.tap do |config|
-      config.add_hook  :before_write, :complete?
-      config.add_model :band
-      config.add_model :musician do
-        references :band
-      end
-    end
-  end
   let(:writer)    { Redistent::Writer.new(key, config.models) }
   let(:metallica) { Band.new(name: "Metallica") }
   let(:james)     { Musician.new(name: "James Hetfield", band: metallica) }
