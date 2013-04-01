@@ -55,7 +55,7 @@ describe Redistent::Writer do
     end
   end
 
-  context "write model with reference" do
+  context "write model with references" do
     it "saves the reference uid instead of the object" do
       %w[123 456].each(&mock_next_uids)
       writer.write(metallica)
