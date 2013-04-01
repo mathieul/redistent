@@ -36,4 +36,20 @@ describe Redistent::Reader do
       expect { reader.read(:band, "doesn-t-exist") }.to raise_error(Redistent::ModelNotFound)
     end
   end
+
+  context "read model with references" do
+    it "replaces reference uids with instance" do
+      redis.set("reader:Band:42",
+        BSON.serialize(name: "Eiffel").to_s
+      )
+      redis.set("reader:Musician:1",
+        BSON.serialize(name: "Romain Humeau", band_uid: "42").to_s
+      )
+      romain = reader.read(:musician, "1")
+      expect(romain.name).to eq("Romain Humeau")
+      expect(romain.band).to be_an_instance_of(Band)
+      expect(romain.band.uid).to eq("42")
+      expect(romain.band.name).to eq("Eiffel")
+    end
+  end
 end
