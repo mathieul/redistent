@@ -15,6 +15,7 @@ module Redistent
       key.redis.multi do
         model_uids.each { |model, uid| model.uid = uid }
         models.each do |model|
+          run_hooks(:before_write, model)
           model.uid ||= model_uids[model]
           push_uid(model)
           references = describe(model).references
@@ -61,9 +62,9 @@ module Redistent
 
     def describe(model)
       @descriptions[model.class] ||= begin
-        model_type = model.class.to_s.underscore.to_sym
-        unless (description = models[model_type])
-          raise ConfigError, "Model #{model_type.inspect} hasn't been described"
+        type = model.class.to_s.underscore.to_sym
+        unless (description = models[type])
+          raise ConfigError, "Model #{type.inspect} hasn't been described"
         end
         description
       end
@@ -93,6 +94,11 @@ module Redistent
         key[reference.attribute][persisted_value].srem(model.uid) unless persisted_value.nil?
         key[reference.attribute][value].sadd(model.uid) unless value.nil?
       end
+    end
+
+    def run_hooks(name, model)
+      hooks = describe(model).hooks[name]
+      Array(hooks).each { |hook| model.send(hook) }
     end
   end
 end

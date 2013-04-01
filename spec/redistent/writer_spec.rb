@@ -94,4 +94,12 @@ describe Redistent::Writer do
       expect(redis.smembers("writer:Musician:indices:band_uid:M39")).to eq(["B44"])
     end
   end
+
+  context "run hooks" do
+    it "runs :before_write hooks before writing a model" do
+      config.add_hook :before_write, :complete?
+      metallica.should_receive(:complete?).and_raise("validation error")
+      expect { writer.write(metallica) }.to raise_error("validation error")
+    end
+  end
 end
