@@ -37,5 +37,10 @@ describe Redistent::Accessor do
       Redistent::Writer.any_instance.should_receive(:write).with(:the, :arguments)
       accessor.write(:the, :arguments)
     end
+
+    it "delegates #read to a reader" do
+      Redistent::Reader.any_instance.should_receive(:read).with(:the, :arguments)
+      accessor.read(:the, :arguments)
+    end
   end
 end

@@ -34,6 +34,7 @@ module Redistent
     end
 
     def read(*args)
+      reader.read(*args)
     end
 
     def collection(*args)
@@ -43,6 +44,10 @@ module Redistent
 
     def writer
       @writer ||= Writer.new(key, self.class.config.models)
+    end
+
+    def reader
+      @reader ||= Reader.new(key, self.class.config.models)
     end
   end
 end
