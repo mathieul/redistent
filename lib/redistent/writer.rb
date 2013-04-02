@@ -46,7 +46,7 @@ module Redistent
       uid_key(model).sadd(model.uid)
       references = describe(model).references
       attributes = model_attributes(references, model.attributes)
-      index_model_references(model, references, attributes)
+      index_reference_indices(model, references, attributes)
       store_attributes(model, attributes)
     end
 
@@ -67,14 +67,25 @@ module Redistent
       attributes
     end
 
-    def index_model_references(model, references, attributes)
+    def index_reference_indices(model, references, attributes)
       references.each do |reference|
-        persisted_value = model.persisted_attributes[reference.attribute] unless model.persisted_attributes.nil?
-        value = attributes[reference.attribute]
-        next if persisted_value == value
-        reference_key = index_key(model, reference.attribute)
-        reference_key[persisted_value].srem(model.uid) unless persisted_value.nil?
-        reference_key[value].sadd(model.uid) unless value.nil?
+        cleanup_reference_index(model, reference.attribute)
+        populate_reference_index(model, reference.attribute, attributes)
+      end
+    end
+
+    def cleanup_reference_index(model, attribute_name)
+      return if model.persisted_attributes.nil?
+      if (value = model.persisted_attributes[attribute_name])
+        reference_key = index_key(model, attribute_name)
+        reference_key[value].srem(model.uid)
+      end
+    end
+
+    def populate_reference_index(model, attribute_name, attributes)
+      if (value = attributes[attribute_name])
+        reference_key = index_key(model, attribute_name)
+        reference_key[value].sadd(model.uid)
       end
     end
 
