@@ -2,12 +2,14 @@ require "bson"
 
 module Redistent
   class Writer
+    include HasModelKeys
+    include HasModelDescriptions
+
     attr_reader :models, :key
 
     def initialize(key, models)
       @key = key
       @models = models
-      @descriptions = {}
     end
 
     def write(*models)
@@ -17,7 +19,7 @@ module Redistent
         models.each do |model|
           run_hooks(:before_write, model)
           model.uid ||= model_uids[model]
-          push_uid(model)
+          uid_key(model).sadd(model.uid)
           references = describe(model).references
           attributes = model_attributes(references, model.attributes)
           index_model_references(model, references, attributes)
@@ -46,35 +48,13 @@ module Redistent
 
     private
 
-    def model_key(model)
-      key[model.class.to_s]
-    end
-
-    def push_uid(model)
-      model_key(model)["all"].sadd(model.uid)
-    end
-
     def store_attributes(model, attributes)
       serialized = BSON.serialize(attributes)
-      model_key(model)[model.uid].set(serialized.to_s)
+      attribute_key(model).set(serialized.to_s)
       model.persisted_attributes = attributes
     end
 
-    def describe(model)
-      @descriptions[model.class] ||= begin
-        type = model.class.to_s.underscore.to_sym
-        unless (description = models[type])
-          raise ConfigError, "Model #{type.inspect} hasn't been described"
-        end
-        description
-      end
-    end
-
-    def model_attributes(references, attributes)
-      replace_references_with_uids(references, attributes)
-    end
-
-    def replace_references_with_uids(model_references, attributes)
+    def model_attributes(model_references, attributes)
       model_references.each do |reference|
         if attributes.has_key?(reference.model)
           referenced = attributes.delete(reference.model)
@@ -86,13 +66,13 @@ module Redistent
     end
 
     def index_model_references(model, references, attributes)
-      key = model_key(model)["indices"]
       references.each do |reference|
         persisted_value = model.persisted_attributes[reference.attribute] unless model.persisted_attributes.nil?
         value = attributes[reference.attribute]
         next if persisted_value == value
-        key[reference.attribute][persisted_value].srem(model.uid) unless persisted_value.nil?
-        key[reference.attribute][value].sadd(model.uid) unless value.nil?
+        reference_key = index_key(model, reference.attribute)
+        reference_key[persisted_value].srem(model.uid) unless persisted_value.nil?
+        reference_key[value].sadd(model.uid) unless value.nil?
       end
     end
 

@@ -25,10 +25,6 @@ module Redistent
 
     private
 
-    def model_key(model)
-      key[model.class.to_s]
-    end
-
     def deserialize_attributes(serialized)
       BSON.deserialize(serialized).each.with_object({}) do |(name, value), attributes|
         attributes[name.to_sym] = value
