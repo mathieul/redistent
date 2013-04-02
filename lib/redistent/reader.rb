@@ -11,13 +11,9 @@ module Redistent
 
     def read(model_type, uid)
       class_name = model_type.to_s.camelize
-      unless (serialized = key[class_name][uid].get)
-        raise ModelNotFound, "No #{class_name} found with uid #{uid.inspect}"
-      end
-      attributes = deserialize_attributes(serialized)
-      references = models[model_type].references
-      attributes = replace_uids_with_instances!(references, attributes)
       klass = Object.const_get(class_name.to_sym)
+      attributes = read_attributes(class_name, uid)
+      attributes = replace_uids_with_instances!(model_type, attributes)
       klass.new(attributes.merge(uid: uid)).tap do |model|
         model.persisted_attributes = model.attributes
       end
@@ -25,13 +21,17 @@ module Redistent
 
     private
 
-    def deserialize_attributes(serialized)
+    def read_attributes(class_name, uid)
+      unless (serialized = key[class_name][uid].get)
+        raise ModelNotFound, "No #{class_name} found with uid #{uid.inspect}"
+      end
       BSON.deserialize(serialized).each.with_object({}) do |(name, value), attributes|
         attributes[name.to_sym] = value
       end
     end
 
-    def replace_uids_with_instances!(references, attributes)
+    def replace_uids_with_instances!(model_type, attributes)
+      references = models[model_type].references
       references.each do |reference|
         uid = attributes.delete(reference.attribute)
         next unless uid
