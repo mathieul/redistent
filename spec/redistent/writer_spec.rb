@@ -82,7 +82,7 @@ describe Redistent::Writer do
       expect(redis.smembers("writer:Musician:indices:band_uid:M39")).to eq(["J40"])
     end
 
-    it "removes old references when updating a model", wip: true do
+    it "removes old references when updating a model" do
       suicidal = Band.new(uid: "S43", name: "Suicidal Tendencies")
       bob = Musician.new(uid: "B44", name: "Robert Trujillo", band: suicidal)
       writer.write(bob)

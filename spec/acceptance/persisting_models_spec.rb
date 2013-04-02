@@ -54,7 +54,7 @@ class Skill
   attribute :task_queue, TaskQueue
   attribute :teammate, Teammate
   def validate
-    %i[level queue teammate].each { |name| assert_present(name) }
+    %i[level task_queue teammate].each { |name| assert_present(name) }
     assert_numeric :level
   end
 end
@@ -64,8 +64,8 @@ class PersistentAccessor
   before_write :valid?
   model :task_queue do
     embeds :tasks, sort_by: :queued_at do
-      define(:count)   { |key| key.zcard }
-      define(:next_id) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
+      define(:count)    { |key| key.zcard }
+      define(:next_uid) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
     end
     collection :teammates, via: :skills
   end
@@ -94,16 +94,15 @@ feature "persisting models" do
   end
 
   scenario "write a model with references and reload it with references" do
-    pending
     queue = TaskQueue.new(name: "fix bugs")
     teammate = Teammate.new(name: "John Doe")
-    skill = Skill.new(queue: queue, teammate: teammate, level: 50)
+    skill = Skill.new(task_queue: queue, teammate: teammate, level: 50)
     accessor.write(skill)
 
-    reloaded = accessor.read(:skill, skill.id)
+    reloaded = accessor.read(:skill, skill.uid)
     expect(reloaded.level).to eq(skill.level)
-    expect(reloaded.queue).to eq(skill.queue)
-    expect(reloaded.teammate).to eq(skill.teammate)
+    expect(reloaded.task_queue.uid).to eq(skill.task_queue.uid)
+    expect(reloaded.teammate.uid).to eq(skill.teammate.uid)
   end
 
   scenario "query a model's referrers" do
@@ -112,7 +111,7 @@ feature "persisting models" do
     teammate = Teammate.new(name: "John Doe", team: team)
     other = Teammate.new(name: "Jane Doe", team: team)
     accessor.write(teammate, other)
-    reloaded_team = accessor.read(:team, teammate.team.id)
+    reloaded_team = accessor.read(:team, teammate.team.uid)
 
     referrers = accessor.collection(reloaded_team, :teammates)
     expect(referrers.count).to eq(2)
@@ -129,9 +128,9 @@ feature "persisting models" do
     accessor.collection(queue, :tasks) << task2
     accessor.collection(queue, :tasks) << task1
 
-    queue = accessor.read(:task_queue, queue.id)
+    queue = accessor.read(:task_queue, queue.uid)
     collection = accessor.collection(queue, :tasks)
     expect(collection.count).to eq(2)
-    expect(collection.next_id).to eq(task2)
+    expect(collection.next_uid).to eq(task2)
   end
 end

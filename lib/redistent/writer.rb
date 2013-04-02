@@ -29,7 +29,7 @@ module Redistent
         attributes = model.attributes
         describe(model).references.each do |reference|
           referenced = attributes[reference.model]
-          found[referenced] = next_uid if referenced.uid.nil?
+          found[referenced] = next_uid if referenced && referenced.uid.nil?
         end
       end
     end
@@ -58,8 +58,7 @@ module Redistent
 
     def model_attributes(model_references, attributes)
       model_references.each do |reference|
-        if attributes.has_key?(reference.model)
-          referenced = attributes.delete(reference.model)
+        if (referenced = attributes.delete(reference.model))
           write(referenced)
           attributes[reference.attribute] = referenced.uid
         end
