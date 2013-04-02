@@ -27,57 +27,83 @@ Or install it yourself as:
 ## Usage
 
 ```ruby
+require "redistent"
+require "virtus"
+require "scrivener"
+
 class TaskQueue
   include Virtus
-  attr_reader :id
+  include Scrivener::Validations
+  attr_accessor :uid, :persisted_attributes
   attribute :name, String
+  def validate
+    assert_present :name
+  end
 end
 
 class Task
   include Virtus
-  attr_reader :id
+  include Scrivener::Validations
+  attr_accessor :uid, :persisted_attributes
   attribute :title, String
-  attribute :queue, TaskQueue
+  attribute :task_queue, TaskQueue
   attribute :queued_at, DateTime
+  def validate
+    assert_present :title
+  end
 end
 
 class Team
   include Virtus
-  attr_reader :id
+  include Scrivener::Validations
+  attr_accessor :uid, :persisted_attributes
   attribute :name, String
+  def validate
+    assert_present :name
+  end
 end
 
 class Teammate
   include Virtus
-  attr_reader :id
+  include Scrivener::Validations
+  attr_accessor :uid, :persisted_attributes
   attribute :name, String
   attribute :team, Team
+  def validate
+    assert_present :name
+    assert_present :team
+  end
 end
 
 class Skill
   include Virtus
-  attr_reader :id
+  include Scrivener::Validations
+  attr_accessor :uid, :persisted_attributes
   attribute :level, Integer
-  attribute :queue, TaskQueue
+  attribute :task_queue, TaskQueue
   attribute :teammate, Teammate
+  def validate
+    %i[level task_queue teammate].each { |name| assert_present(name) }
+    assert_numeric :level
+  end
 end
 
 class PersistentAccessor
   include Redistent::Accessor
   before_write :valid?
-  model :queue do
+  model :task_queue do
     embeds :tasks, sort_by: :queued_at do
-      define(:count)   { |key| key.zcard }
-      define(:next_id) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
+      define(:count)    { |key| key.zcard }
+      define(:next_uid) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
     end
     collection :teammates, via: :skills
   end
   model :teammate do
     references :team
-    collection :queues, via: :skills
+    collection :task_queues, via: :skills
   end
   model :skill do
-    references :queue
+    references :task_queue
     references :teammate
   end
 end
@@ -87,7 +113,7 @@ accessor = PersistentAccessor.new(url: "redis://127.0.0.1:6379/7")
 # write/read/erase
 bug_queue = TaskQueue.new(name: "fix bugs")
 accessor.write(bug_queue)
-feature_queue = accessor.read(:queue, "id123")
+feature_queue = accessor.read(:task_queue, "id123")
 accessor.erase(bug_queue)
 
 # collection of referrers
@@ -101,7 +127,7 @@ all_teammates = accessor.collection(feature_queue, :teammates).all
 # collection of embedded objects
 task_collection = accessor.collection(feature_queue, :tasks)
 task_collection << Task.new(title: "generate csv report")
-next_task_id = task_collection.next_id
+next_task_uid = task_collection.next_uid
 ```
 
 ## Contributing
