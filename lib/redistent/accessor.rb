@@ -37,6 +37,10 @@ module Redistent
       reader.read(*args)
     end
 
+    def erase(*args)
+      eraser.erase(*args)
+    end
+
     def collection(*args)
     end
 
@@ -48,6 +52,10 @@ module Redistent
 
     def reader
       @reader ||= Reader.new(key, self.class.config.models)
+    end
+
+    def eraser
+      @eraser ||= Eraser.new(key, self.class.config.models)
     end
   end
 end

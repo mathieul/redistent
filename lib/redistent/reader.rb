@@ -7,7 +7,6 @@ module Redistent
     def initialize(key, models)
       @key = key
       @models = models
-      @descriptions = {}
     end
 
     def read(model_type, uid)

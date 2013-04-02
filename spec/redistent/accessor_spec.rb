@@ -42,5 +42,10 @@ describe Redistent::Accessor do
       Redistent::Reader.any_instance.should_receive(:read).with(:the, :arguments)
       accessor.read(:the, :arguments)
     end
+
+    it "delegates #erase to an eraser" do
+      Redistent::Eraser.any_instance.should_receive(:erase).with(:the, :arguments)
+      accessor.erase(:the, :arguments)
+    end
   end
 end
