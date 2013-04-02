@@ -3,13 +3,13 @@ require "virtus"
 
 class TaskQueue
   include Virtus
-  attr_accessor :id
+  attr_accessor :uid, :persisted_attributes
   attribute :name, String
 end
 
 class Task
   include Virtus
-  attr_accessor :id
+  attr_accessor :uid, :persisted_attributes
   attribute :title, String
   attribute :queue, TaskQueue
   attribute :queued_at, DateTime
@@ -17,20 +17,20 @@ end
 
 class Team
   include Virtus
-  attr_accessor :id
+  attr_accessor :uid, :persisted_attributes
   attribute :name, String
 end
 
 class Teammate
   include Virtus
-  attr_accessor :id
+  attr_accessor :uid, :persisted_attributes
   attribute :name, String
   attribute :team, Team
 end
 
 class Skill
   include Virtus
-  attr_accessor :id
+  attr_accessor :uid, :persisted_attributes
   attribute :level, Integer
   attribute :queue, TaskQueue
   attribute :teammate, Teammate
@@ -39,7 +39,7 @@ end
 class PersistentAccessor
   include Redistent::Accessor
   before_write :valid?
-  model :queue do
+  model :task_queue do
     embeds :tasks, sort_by: :queued_at do
       define(:count)   { |key| key.zcard }
       define(:next_id) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
@@ -60,15 +60,14 @@ feature "persisting models" do
   let(:accessor) { PersistentAccessor.new(redis_config) }
 
   scenario "write, reload and erase a model" do
-    pending
     queue = TaskQueue.new(name: "fix bugs")
     accessor.write(queue)
 
-    reloaded = accessor.read(:queue, queue.id)
+    reloaded = accessor.read(:queue, queue.uid)
     expect(reloaded.name).to eq("fix bugs")
 
     accessor.erase(reloaded)
-    expect(accessor.read(:queue, queue.id)).to be_nil
+    expect(accessor.read(:queue, queue.uid)).to be_nil
   end
 
   scenario "write a model with references and reload it with references" do
