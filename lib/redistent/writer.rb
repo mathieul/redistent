@@ -16,15 +16,7 @@ module Redistent
       model_uids = set_and_return_missing_uids(models)
       key.redis.multi do
         model_uids.each { |model, uid| model.uid = uid }
-        models.each do |model|
-          run_hooks(:before_write, model)
-          model.uid ||= model_uids[model]
-          uid_key(model).sadd(model.uid)
-          references = describe(model).references
-          attributes = model_attributes(references, model.attributes)
-          index_model_references(model, references, attributes)
-          store_attributes(model, attributes)
-        end
+        models.each { |model| write_model(model, model.uid || uid) }
       end
     rescue Exception => ex
       model_uids.each { |model, uid| model.uid = nil } unless model_uids.nil?
@@ -47,6 +39,16 @@ module Redistent
     end
 
     private
+
+    def write_model(model, uid)
+      run_hooks(:before_write, model)
+      model.uid = uid
+      uid_key(model).sadd(model.uid)
+      references = describe(model).references
+      attributes = model_attributes(references, model.attributes)
+      index_model_references(model, references, attributes)
+      store_attributes(model, attributes)
+    end
 
     def store_attributes(model, attributes)
       serialized = BSON.serialize(attributes)
