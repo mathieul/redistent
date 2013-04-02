@@ -12,8 +12,6 @@ module Redistent
       end
     end
 
-    attr_reader :key
-
     module ClassMethods
       def model(name, &block)
         config.add_model(name, &block)
@@ -23,6 +21,8 @@ module Redistent
         config.add_hook(:before_write, message)
       end
     end
+
+    attr_reader :key
 
     def initialize(config)
       redis = Redis.new(config)

@@ -1,39 +1,62 @@
 require "acceptance_helper"
 require "virtus"
+require "scrivener"
 
 class TaskQueue
   include Virtus
+  include Scrivener::Validations
   attr_accessor :uid, :persisted_attributes
   attribute :name, String
+  def validate
+    assert_present :name
+  end
 end
 
 class Task
   include Virtus
+  include Scrivener::Validations
   attr_accessor :uid, :persisted_attributes
   attribute :title, String
-  attribute :queue, TaskQueue
+  attribute :task_queue, TaskQueue
   attribute :queued_at, DateTime
+  def validate
+    assert_present :title
+  end
 end
 
 class Team
   include Virtus
+  include Scrivener::Validations
   attr_accessor :uid, :persisted_attributes
   attribute :name, String
+  def validate
+    assert_present :name
+  end
 end
 
 class Teammate
   include Virtus
+  include Scrivener::Validations
   attr_accessor :uid, :persisted_attributes
   attribute :name, String
   attribute :team, Team
+  def validate
+    assert_present :name
+    assert_present :team
+  end
 end
 
 class Skill
   include Virtus
+  include Scrivener::Validations
   attr_accessor :uid, :persisted_attributes
   attribute :level, Integer
-  attribute :queue, TaskQueue
+  attribute :task_queue, TaskQueue
   attribute :teammate, Teammate
+  def validate
+    %i[level queue teammate].each { |name| assert_present(name) }
+    assert_numeric :level
+  end
 end
 
 class PersistentAccessor
@@ -48,10 +71,10 @@ class PersistentAccessor
   end
   model :teammate do
     references :team
-    collection :queues, via: :skills
+    collection :task_queues, via: :skills
   end
   model :skill do
-    references :queue
+    references :task_queue
     references :teammate
   end
 end
@@ -63,11 +86,11 @@ feature "persisting models" do
     queue = TaskQueue.new(name: "fix bugs")
     accessor.write(queue)
 
-    reloaded = accessor.read(:queue, queue.uid)
+    reloaded = accessor.read(:task_queue, queue.uid)
     expect(reloaded.name).to eq("fix bugs")
 
     accessor.erase(reloaded)
-    expect(accessor.read(:queue, queue.uid)).to be_nil
+    expect { accessor.read(:task_queue, queue.uid) }.to raise_error
   end
 
   scenario "write a model with references and reload it with references" do
@@ -106,7 +129,7 @@ feature "persisting models" do
     accessor.collection(queue, :tasks) << task2
     accessor.collection(queue, :tasks) << task1
 
-    queue = accessor.read(:queue, queue.id)
+    queue = accessor.read(:task_queue, queue.id)
     collection = accessor.collection(queue, :tasks)
     expect(collection.count).to eq(2)
     expect(collection.next_id).to eq(task2)

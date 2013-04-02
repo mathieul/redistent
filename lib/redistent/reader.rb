@@ -12,7 +12,7 @@ module Redistent
     def read(model_type, uid)
       class_name = model_type.to_s.camelize
       unless (serialized = key[class_name][uid].get)
-        raise ModelNotFound, "No model found with uid #{uid.inspect}"
+        raise ModelNotFound, "No #{class_name} found with uid #{uid.inspect}"
       end
       attributes = deserialize_attributes(serialized)
       references = models[model_type].references
