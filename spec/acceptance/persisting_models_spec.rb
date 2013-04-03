@@ -113,10 +113,6 @@ feature "persisting models" do
     expect(reloaded.teammate.uid).to eq(skill.teammate.uid)
   end
 
-  scenario "ensure only one operation is executed at once" do
-    pending
-  end
-
   scenario "query a model's referrers" do
     pending
     team = Team.new(name: "engineering")

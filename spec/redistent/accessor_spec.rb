@@ -49,5 +49,28 @@ describe Redistent::Accessor do
       Redistent::Eraser.any_instance.should_receive(:erase).with(:the, :arguments)
       accessor.erase(:the, :arguments)
     end
+
+    it "doesn't execute more than one operation at a time" do
+      delegate = Struct.new(:messages) do
+        def operation(*args)
+          messages << :start
+          sleep 0.1
+          messages << :finish
+        end
+        alias :write :operation
+        alias :read :operation
+        alias :erase :operation
+      end.new([])
+      accessor.instance_eval do
+        %i[writer reader eraser].each do |name|
+          define_singleton_method(name) { delegate }
+        end
+      end
+      threads = Array.new(10).map do
+        Thread.new { delegate.write }
+      end
+      threads.each(&:join)
+      expect(delegate.messages).to eq([:start, :finish] * 5)
+    end
   end
 end

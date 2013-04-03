@@ -1,5 +1,5 @@
-require "redis"
 require "nest"
+require "thread"
 
 module Redistent
   module Accessor
@@ -25,20 +25,20 @@ module Redistent
     attr_reader :key
 
     def initialize(config)
-      redis = Redis.new(config)
-      @key = Nest.new("redistent", redis)
+      @key = Nest.new("redistent", Redis.new(config))
+      @mutex = Mutex.new
     end
 
     def write(*args)
-      writer.write(*args)
+      @mutex.synchronize { writer.write(*args) }
     end
 
     def read(*args)
-      reader.read(*args)
+      @mutex.synchronize { reader.read(*args) }
     end
 
     def erase(*args)
-      eraser.erase(*args)
+      @mutex.synchronize { eraser.erase(*args) }
     end
 
     def collection(*args)
