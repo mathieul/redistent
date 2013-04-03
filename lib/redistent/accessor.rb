@@ -28,16 +28,22 @@ module Redistent
       @mutex = Mutex.new
     end
 
+    def with_lock
+      @mutex.synchronize do
+        yield if block_given?
+      end
+    end
+
     def write(*args)
-      @mutex.synchronize { writer.write(*args) }
+      with_lock { writer.write(*args) }
     end
 
     def read(*args)
-      @mutex.synchronize { reader.read(*args) }
+      with_lock { reader.read(*args) }
     end
 
     def erase(*args)
-      @mutex.synchronize { eraser.erase(*args) }
+      with_lock { eraser.erase(*args) }
     end
 
     def collection(*args)

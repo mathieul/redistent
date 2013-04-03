@@ -32,7 +32,7 @@ describe Redistent::Accessor do
     end
   end
 
-  context "operations delegation" do
+  context "accessor operations" do
     let(:accessor) { klass.new(redis_config) }
 
     it "delegates #write to a writer" do
@@ -49,8 +49,33 @@ describe Redistent::Accessor do
       Redistent::Eraser.any_instance.should_receive(:erase).with(:the, :arguments)
       accessor.erase(:the, :arguments)
     end
+  end
+
+  context "exclusif access to redis connection" do
+    let(:accessor) { klass.new(redis_config) }
+
+    it "exposes the use of its unique mutex" do
+      operation = ->(messages) { messages << :start; sleep 0.1; messages << :finish }
+
+      parallel = []
+      threads = Array.new(5).map do
+        Thread.new { operation.call(parallel) }
+      end
+      threads.each(&:join)
+      expect(parallel).to eq([:start] * 5 + [:finish] * 5)
+
+      sequential = []
+      threads = Array.new(5).map do
+        Thread.new do
+          accessor.with_lock { operation.call(sequential) }
+        end
+      end
+      threads.each(&:join)
+      expect(sequential).to eq([:start, :finish] * 5)
+    end
 
     it "doesn't execute more than one operation at a time" do
+      # klass for the delegate double that will just push messages and sleep
       delegate_klass = Struct.new(:messages) do
         def write(*args)
           messages << :start
@@ -60,6 +85,7 @@ describe Redistent::Accessor do
         alias :read :write
         alias :erase :write
       end
+      # use the delegate double rather than the accessor delegates
       accessor.instance_eval do
         @delegate = delegate_klass.new([])
         def delegate; @delegate; end
@@ -68,13 +94,13 @@ describe Redistent::Accessor do
         alias :eraser :delegate
         def messages; delegate.messages; end
       end
-      threads = Array.new(5).map do
-        Thread.new { accessor.read }
-        Thread.new { accessor.write }
-        Thread.new { accessor.erase }
-      end
+
+      threads = []
+      threads << Thread.new { accessor.read }
+      threads << Thread.new { accessor.write }
+      threads << Thread.new { accessor.erase }
       threads.each(&:join)
-      expect(accessor.messages).to eq([:start, :finish] * 15)
+      expect(accessor.messages).to eq([:start, :finish, :start, :finish, :start, :finish])
     end
   end
 end
