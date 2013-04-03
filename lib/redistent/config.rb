@@ -20,8 +20,9 @@ module Redistent
       @models ||= {}
     end
 
-    def add_hook(name, message)
-      (hooks[name] ||= []) << message
+    def add_hook(name, message = nil, &block)
+      hook = message ? message : (block || ->{})
+      (hooks[name] ||= []) << hook
     end
 
     def add_model(name, &block)

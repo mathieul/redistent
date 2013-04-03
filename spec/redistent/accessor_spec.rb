@@ -13,7 +13,9 @@ describe Redistent::Accessor do
 
     it "adds a guard hook to run before writing with #before_write" do
       klass.before_write :message_name
-      expect(config.hooks).to eq(before_write: [:message_name])
+      klass.before_write { |model| "arg is #{model}" }
+      expect(config.hooks[:before_write].first).to eq(:message_name)
+      expect(config.hooks[:before_write].last.call("hello")).to eq("arg is hello")
     end
 
     it "adds a model with #model" do

@@ -96,10 +96,15 @@ describe Redistent::Writer do
   end
 
   context "run hooks" do
-    it "runs :before_write hooks before writing a model" do
+    it "runs :before_write message hooks before writing a model" do
       config.add_hook :before_write, :complete?
       metallica.should_receive(:complete?).and_raise("validation error")
       expect { writer.write(metallica) }.to raise_error("validation error")
+    end
+
+    it "runs :before_write block hooks before writing a model" do
+      config.add_hook(:before_write) { |model| raise "type #{model.class}" }
+      expect { writer.write(metallica) }.to raise_error("type Band")
     end
   end
 end

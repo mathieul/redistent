@@ -4,9 +4,14 @@ describe Redistent::Config do
   let(:config) { Redistent::Config.new }
 
   context "describe the configuration" do
-    it "adds a hook with #add_hook" do
+    it "adds a message hook with #add_hook(:symbol)" do
       config.add_hook(:hook_name, :message)
       expect(config.hooks).to eq(hook_name: [:message])
+    end
+
+    it "adds a block hook with #add_hook(&block)" do
+      config.add_hook(:hook_name) { "result" }
+      expect(config.hooks[:hook_name].first.call).to eq("result")
     end
 
     it "adds a model with #add_model" do

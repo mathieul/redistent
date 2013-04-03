@@ -23,15 +23,17 @@ module Redistent
       raise ex
     end
 
-    def set_and_return_missing_uids(models)
-      models.each.with_object({}) do |model, found|
+    def set_and_return_missing_uids(models, found = {})
+      Array(models).each do |model|
         found[model] = next_uid if model.uid.nil?
         attributes = model.attributes
         describe(model).references.each do |reference|
-          referenced = attributes[reference.model]
-          found[referenced] = next_uid if referenced && referenced.uid.nil?
+          if (referenced = attributes[reference.model])
+            found = set_and_return_missing_uids(referenced, found)
+          end
         end
       end
+      found
     end
 
     def next_uid
@@ -90,7 +92,9 @@ module Redistent
 
     def run_hooks(name, model)
       hooks = describe(model).hooks[name]
-      Array(hooks).each { |hook| model.send(hook) }
+      Array(hooks).each do |hook|
+        hook.respond_to?(:call) ? hook.call(model) : model.send(hook)
+      end
     end
   end
 end
