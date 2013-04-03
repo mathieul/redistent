@@ -51,26 +51,30 @@ describe Redistent::Accessor do
     end
 
     it "doesn't execute more than one operation at a time" do
-      delegate = Struct.new(:messages) do
-        def operation(*args)
+      delegate_klass = Struct.new(:messages) do
+        def write(*args)
           messages << :start
           sleep 0.1
           messages << :finish
         end
-        alias :write :operation
-        alias :read :operation
-        alias :erase :operation
-      end.new([])
-      accessor.instance_eval do
-        %i[writer reader eraser].each do |name|
-          define_singleton_method(name) { delegate }
-        end
+        alias :read :write
+        alias :erase :write
       end
-      threads = Array.new(10).map do
-        Thread.new { delegate.write }
+      accessor.instance_eval do
+        @delegate = delegate_klass.new([])
+        def delegate; @delegate; end
+        alias :writer :delegate
+        alias :reader :delegate
+        alias :eraser :delegate
+        def messages; delegate.messages; end
+      end
+      threads = Array.new(5).map do
+        Thread.new { accessor.read }
+        Thread.new { accessor.write }
+        Thread.new { accessor.erase }
       end
       threads.each(&:join)
-      expect(delegate.messages).to eq([:start, :finish] * 5)
+      expect(accessor.messages).to eq([:start, :finish] * 15)
     end
   end
 end

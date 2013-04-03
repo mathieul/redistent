@@ -1,5 +1,4 @@
 require "nest"
-require "thread"
 
 module Redistent
   module Accessor
