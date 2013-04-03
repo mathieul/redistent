@@ -61,17 +61,25 @@ end
 
 class PersistentAccessor
   include Redistent::Accessor
-  before_write :valid?
+  before_write do |model|
+    unless model.valid?
+      messages = model.errors.map do |attribute, errors|
+        "#{attribute} is #{errors.join(", ")}"
+      end
+      raise "#{model.class}: #{messages.join(" - ")}"
+    end
+  end
+  model :team
+  model :teammate do
+    references :team
+    collection :task_queues, via: :skills
+  end
   model :task_queue do
     embeds :tasks, sort_by: :queued_at do
       define(:count)    { |key| key.zcard }
       define(:next_uid) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
     end
     collection :teammates, via: :skills
-  end
-  model :teammate do
-    references :team
-    collection :task_queues, via: :skills
   end
   model :skill do
     references :task_queue
@@ -95,7 +103,7 @@ feature "persisting models" do
 
   scenario "write a model with references and reload it with references" do
     queue = TaskQueue.new(name: "fix bugs")
-    teammate = Teammate.new(name: "John Doe")
+    teammate = Teammate.new(name: "John Doe", team: Team.new(name: "Anonymous"))
     skill = Skill.new(task_queue: queue, teammate: teammate, level: 50)
     accessor.write(skill)
 
@@ -103,6 +111,10 @@ feature "persisting models" do
     expect(reloaded.level).to eq(skill.level)
     expect(reloaded.task_queue.uid).to eq(skill.task_queue.uid)
     expect(reloaded.teammate.uid).to eq(skill.teammate.uid)
+  end
+
+  scenario "ensure only one operation is executed at once" do
+    pending
   end
 
   scenario "query a model's referrers" do
