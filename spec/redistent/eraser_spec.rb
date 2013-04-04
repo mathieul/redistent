@@ -5,9 +5,9 @@ require "redis_helper"
 describe Redistent::Eraser do
   include RedisHelper
 
-  let(:key)       { Nest.new("eraser", redis) }
-  let(:eraser)    { Redistent::Eraser.new(key, config.models) }
-  let(:model) { Band.new(uid: "12") }
+  let(:key)    { Nest.new("eraser", redis) }
+  let(:eraser) { Redistent::Eraser.new(key, config.models) }
+  let(:model)  { Band.new(uid: "12") }
 
   it "deletes the uid key" do
     redis.sadd("eraser:Band:all", "12")
