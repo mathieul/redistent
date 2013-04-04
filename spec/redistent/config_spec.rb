@@ -3,7 +3,7 @@ require "spec_helper"
 describe Redistent::Config do
   let(:config) { Redistent::Config.new }
 
-  context "describe the configuration" do
+  context "adding hooks" do
     it "adds a message hook with #add_hook(:symbol)" do
       config.add_hook(:hook_name, :message)
       expect(config.hooks).to eq(hook_name: [:message])
@@ -13,7 +13,9 @@ describe Redistent::Config do
       config.add_hook(:hook_name) { "result" }
       expect(config.hooks[:hook_name].first.call).to eq("result")
     end
+  end
 
+  context "adding models" do
     it "adds a model with #add_model" do
       config.add_model(:name)
       expect(config.models[:name].persist_attributes).to be_true
@@ -27,6 +29,17 @@ describe Redistent::Config do
       reference = config.models[:queue].references.first
       expect(reference.model).to eq(:team)
       expect(reference.attribute).to eq(:team_uid)
+    end
+
+    it "adds an implicit collection to the referenced model" do
+      # config.add_model :team
+      config.add_model :queue do
+        references :team
+      end
+      expect(config.models[:team]).to have(1).collections
+      collection = config.models[:team].collections.first
+      expect(collection.type).to eq(:referenced)
+      expect(collection.model).to eq(:queue)
     end
 
     it "defines an embedded collection with #embeds" do

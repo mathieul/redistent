@@ -3,13 +3,13 @@ module Redistent
     attr_reader :current_model, :current_collection
 
     ModelDescription = Struct.new(
-      :persist_attributes, :hooks, :references, :collections
+      :name, :persist_attributes, :hooks, :references, :collections
     )
     ReferenceDescription = Struct.new(
       :model, :attribute
     )
     CollectionDescription = Struct.new(
-      :type, :sort_by, :model, :attribute, :target, :target_attribute, :methods
+      :model, :type, :sort_by, :attribute, :target, :target_attribute, :methods
     )
 
     def hooks
@@ -26,31 +26,43 @@ module Redistent
     end
 
     def add_model(name, &block)
-      definition = models[name] ||= ModelDescription.new(true, hooks, [])
+      definition = models[name] ||= ModelDescription.new(name, true, hooks, [], [])
       with_model(definition, &block) if block_given?
+      definition
     end
 
     def references(name)
       reference = ReferenceDescription.new(name, :"#{name}_uid")
-      (current_model.references ||= []) << reference
+      current_model.references << reference
+      add_implicit_collection(name, current_model.name)
+    end
+
+    def add_implicit_collection(model_name, collection_name)
+      model = add_model(model_name) unless model = models[model_name]
+      collection = model.collections.find { |item| item.model == collection_name }
+      unless collection
+        model.collections <<  CollectionDescription.new(
+          collection_name, :referenced, nil, :"#{model_name}_uid"
+        )
+      end
     end
 
     def embeds(name, sort_by: false, &block)
       singular_name = name.to_s.singularize.to_sym
       collection = CollectionDescription.new(
-        :embedded, sort_by, singular_name, :"#{singular_name}_uid"
+        singular_name, :embedded, sort_by, :"#{singular_name}_uid"
       )
       if block_given?
         collection.methods = {}
         with_collection(collection, &block)
       end
-      (current_model.collections ||= []) << collection
+      current_model.collections << collection
     end
 
     def collection(name, via: nil)
       singular_name = name.to_s.singularize.to_sym
       collection = CollectionDescription.new(
-        :referenced, nil, singular_name, :"#{singular_name}_uid"
+        singular_name, :referenced, nil, :"#{singular_name}_uid"
       )
       unless via.nil?
         model, attribute = collection.model, collection.attribute
@@ -58,7 +70,7 @@ module Redistent
         collection.attribute = :"#{collection.model}_uid"
         collection.target, collection.target_attribute = model, attribute
       end
-      (current_model.collections ||= []) << collection
+      current_model.collections << collection
     end
 
     def define(name, &block)
