@@ -49,6 +49,11 @@ describe Redistent::Accessor do
       Redistent::Eraser.any_instance.should_receive(:erase).with(:the, :arguments)
       accessor.erase(:the, :arguments)
     end
+
+    it "delegates #collection to a collectioner" do
+      Redistent::Collectioner.any_instance.should_receive(:collection).with(:the, :arguments)
+      accessor.collection(:the, :arguments)
+    end
   end
 
   context "exclusif access to redis connection" do

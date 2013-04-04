@@ -41,7 +41,7 @@ module Redistent
       model = add_model(model_name) unless model = models[model_name]
       collection = model.collections.find { |item| item.model == collection_name }
       unless collection
-        model.collections <<  CollectionDescription.new(
+        model.collections << CollectionDescription.new(
           collection_name, :referenced, nil, :"#{model_name}_uid"
         )
       end

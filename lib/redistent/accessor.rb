@@ -47,6 +47,7 @@ module Redistent
     end
 
     def collection(*args)
+      collectioner.collection(*args)
     end
 
     private
@@ -61,6 +62,10 @@ module Redistent
 
     def eraser
       @eraser ||= Eraser.new(key, self.class.config.models)
+    end
+
+    def collectioner
+      @collectioner ||= Collectioner.new(key, self.class.config.models, self)
     end
   end
 end
