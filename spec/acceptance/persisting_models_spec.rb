@@ -120,9 +120,24 @@ feature "persisting models" do
     accessor.write(teammate, other)
     reloaded_team = accessor.read(:team, teammate.team.uid)
 
-    referrers = accessor.collection(reloaded_team, :teammates)
-    expect(referrers.count).to eq(2)
-    expect(referrers.all.map(&:name).sort).to eq(["Jane Doe", "John Doe"])
+    collection = accessor.collection(reloaded_team, :teammates)
+    expect(collection.count).to eq(2)
+    expect(collection.all.map(&:name).sort).to eq(["Jane Doe", "John Doe"])
+  end
+
+  scenario "query a model's referrers via another model" do
+    teammate = Teammate.new(name: "John Doe", team: Team.new(name: "Anonymous"))
+    bugs = TaskQueue.new(name: "fix bugs")
+    specs = TaskQueue.new(name: "write specs")
+    enhancements = TaskQueue.new(name: "enhancements")
+    accessor.write(
+      Skill.new(teammate: teammate, task_queue: bugs, level: 50),
+      Skill.new(teammate: teammate, task_queue: enhancements, level: 50)
+    )
+
+    collection = accessor.collection(teammate, :task_queues)
+    expect(collection.count).to eq(2)
+    expect(collection.all.map(&:name).sort).to eq(["enhancements", "fix bugs"])
   end
 
   scenario "query a model's embedded collection" do

@@ -74,7 +74,7 @@ describe Redistent::Config do
         collection :teammates, via: :skills
       end
       collection = config.models[:queue].collections[:teammates]
-      expect(collection.type).to eq(:referenced)
+      expect(collection.type).to eq(:indirect)
       expect(collection.model).to eq(:skill)
       expect(collection.attribute).to eq(:queue_uid)
       expect(collection.target).to eq(:teammate)

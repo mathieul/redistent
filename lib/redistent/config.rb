@@ -51,8 +51,9 @@ module Redistent
 
     def collection(plural_name, via: nil)
       singular_name = plural_name.to_s.singularize.to_sym
+      type = via.nil? ? :referenced : :indirect
       collection = CollectionDescription.new(
-        singular_name, :referenced, nil, :"#{singular_name}_uid"
+        singular_name, type, nil, :"#{singular_name}_uid"
       )
       unless via.nil?
         model, attribute = collection.model, collection.attribute

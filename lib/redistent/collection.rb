@@ -11,7 +11,7 @@ module Redistent
     end
 
     def count
-      if description.target_attribute.nil?
+      if description.type == :referenced
         accessor.with_lock { collection_key.scard }
       else
         uids.length
@@ -19,7 +19,7 @@ module Redistent
     end
 
     def uids
-      if description.target_attribute.nil?
+      if description.type == :referenced
         accessor.with_lock { collection_key.smembers }
       else
         accessor.with_lock {
