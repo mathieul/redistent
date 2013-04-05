@@ -1,4 +1,5 @@
 require "spec_helper"
+require "music_classes"
 
 describe Redistent::Accessor do
   let(:klass) { Class.new.tap { |klass| klass.send(:include, Redistent::Accessor) } }
@@ -48,11 +49,6 @@ describe Redistent::Accessor do
     it "delegates #erase to an eraser" do
       Redistent::Eraser.any_instance.should_receive(:erase).with(:the, :arguments)
       accessor.erase(:the, :arguments)
-    end
-
-    it "delegates #collection to a collectioner" do
-      Redistent::Collectioner.any_instance.should_receive(:collection).with(:the, :arguments)
-      accessor.collection(:the, :arguments)
     end
   end
 
@@ -106,6 +102,33 @@ describe Redistent::Accessor do
       threads << Thread.new { accessor.erase }
       threads.each(&:join)
       expect(accessor.messages).to eq([:start, :finish, :start, :finish, :start, :finish])
+    end
+  end
+
+  context "referenced collection" do
+    let(:band) { Band.new(uid: "12") }
+    let(:accessor) { klass.new(redis_config) }
+    before(:each) do
+      klass.config.add_model :musician do
+        references :band
+      end
+    end
+
+    it "returns a collection if it exists" do
+      Redistent::Collection.should_receive(:new) do |ze_model, ze_key, ze_locker, description|
+        expect(ze_model).to eq(band)
+        expect(ze_key).to eq(accessor.key)
+        expect(ze_locker).to eq(accessor)
+        expect(description.model).to eq(:musician)
+        expect(description.type).to eq(:referenced)
+        expect(description.attribute).to eq(:band_uid)
+      end
+      collection = accessor.collection(band, :musicians)
+    end
+
+    it "raises an error if the collection doesn't exist" do
+      expect { accessor.collection(band, :blah) }.to raise_error(Redistent::ConfigError)
+      expect { accessor.collection(Object.new, :zorglub) }.to raise_error(Redistent::ConfigError)
     end
   end
 end

@@ -4,6 +4,7 @@ module Redistent
   module Accessor
     def self.included(base)
       base.instance_eval do
+        include HasModelDescriptions
         extend ClassMethods
         def config
           @config ||= Config.new
@@ -46,26 +47,32 @@ module Redistent
       with_lock { eraser.erase(*args) }
     end
 
-    def collection(*args)
-      collectioner.collection(*args)
+    def collection(model, plural_name)
+      description = describe(model)
+      singular_name = plural_name.to_s.singularize.to_sym
+      collection = description.collections.find { |item| item.model == singular_name }
+      if collection.nil?
+        raise ConfigError, "collection #{plural_name.inspect} not found for #{model.class}."
+      end
+      Collection.new(model, key, self, collection)
     end
 
     private
 
+    def models
+      self.class.config.models
+    end
+
     def writer
-      @writer ||= Writer.new(key, self.class.config.models)
+      @writer ||= Writer.new(key, models)
     end
 
     def reader
-      @reader ||= Reader.new(key, self.class.config.models)
+      @reader ||= Reader.new(key, models)
     end
 
     def eraser
-      @eraser ||= Eraser.new(key, self.class.config.models)
-    end
-
-    def collectioner
-      @collectioner ||= Collectioner.new(key, self.class.config.models, self)
+      @eraser ||= Eraser.new(key, models)
     end
   end
 end
