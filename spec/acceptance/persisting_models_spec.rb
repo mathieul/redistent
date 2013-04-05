@@ -114,7 +114,6 @@ feature "persisting models" do
   end
 
   scenario "query a model's referrers" do
-    pending
     team = Team.new(name: "engineering")
     teammate = Teammate.new(name: "John Doe", team: team)
     other = Teammate.new(name: "Jane Doe", team: team)
