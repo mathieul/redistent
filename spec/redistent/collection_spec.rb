@@ -31,7 +31,9 @@ end
 class Cinema
   include Redistent::Accessor
   model :actor
-  model :movie
+  model :movie do
+    collection :actors, via: :roles
+  end
   model :role do
     references :actor
     references :movie
@@ -39,7 +41,6 @@ class Cinema
 end
 
 describe Redistent::Collection do
-  let(:key)        { Nest.new("eraser", redis) }
   let(:accessor)   { Cinema.new(redis_config) }
   let(:collection) { Redistent::Collection.new(accessor, model, description) }
 
@@ -66,8 +67,25 @@ describe Redistent::Collection do
   end
 
   context "indirect referenced collection" do
-    it "can count the number of referrers"
-    it "can return all the referrers"
+    let(:model)       { Movie.new(title: "Pulp Fiction") }
+    let(:description) { Cinema.config.models[:movie].collections[:actors] }
+    before(:each) do
+      accessor.write(
+        Role.new(character: "Vincent Vega", movie: model, actor: Actor.new(name: "John Travolta")),
+        Role.new(character: "Jules Winnfield", movie: model, actor: Actor.new(name: "Samuel Jackson")),
+        Role.new(character: "Mia Wallace", movie: model, actor: Actor.new(name: "Uma Thurman"))
+      )
+    end
+
+    it "can count the number of referrers" do
+      expect(collection.count).to eq(3)
+    end
+
+    it "can return all the referrers" do
+      expect(collection.all.map(&:name).sort).to eq([
+        "John Travolta", "Samuel Jackson", "Uma Thurman"
+      ])
+    end
   end
 
   context "embedded collection" do
