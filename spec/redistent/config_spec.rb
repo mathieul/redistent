@@ -32,12 +32,10 @@ describe Redistent::Config do
     end
 
     it "adds an implicit collection to the referenced model" do
-      # config.add_model :team
       config.add_model :queue do
         references :team
       end
-      expect(config.models[:team]).to have(1).collections
-      collection = config.models[:team].collections.first
+      collection = config.models[:team].collections[:queues]
       expect(collection.type).to eq(:referenced)
       expect(collection.model).to eq(:queue)
     end
@@ -46,8 +44,7 @@ describe Redistent::Config do
       config.add_model :queue do
         embeds :tasks
       end
-      expect(config.models[:queue]).to have(1).collections
-      collection = config.models[:queue].collections.first
+      collection = config.models[:queue].collections[:tasks]
       expect(collection.type).to eq(:embedded)
       expect(collection.sort_by).to be_false
       expect(collection.model).to eq(:task)
@@ -58,7 +55,7 @@ describe Redistent::Config do
       config.add_model :queue do
         embeds :tasks, sort_by: :queued_at
       end
-      expect(config.models[:queue].collections.first.sort_by).to eq(:queued_at)
+      expect(config.models[:queue].collections[:tasks].sort_by).to eq(:queued_at)
     end
 
     it "defines methods on an embedded collection with #define" do
@@ -68,7 +65,7 @@ describe Redistent::Config do
           define(:testing) { |key| called_with = key }
         end
       end
-      config.models[:queue].collections.first.methods[:testing].call(:test)
+      config.models[:queue].collections[:tasks].methods[:testing].call(:test)
       expect(called_with).to eq(:test)
     end
 
@@ -76,8 +73,7 @@ describe Redistent::Config do
       config.add_model :queue do
         collection :teammates, via: :skills
       end
-      expect(config.models[:queue]).to have(1).collections
-      collection = config.models[:queue].collections.first
+      collection = config.models[:queue].collections[:teammates]
       expect(collection.type).to eq(:referenced)
       expect(collection.model).to eq(:skill)
       expect(collection.attribute).to eq(:skill_uid)

@@ -127,7 +127,7 @@ describe Redistent::Accessor do
     end
 
     it "raises an error if the collection doesn't exist" do
-      expect { accessor.collection(band, :blah) }.to raise_error(Redistent::ConfigError)
+      expect { accessor.collection(band, :blah) }.to raise_error(Redistent::CollectionNotFound)
       expect { accessor.collection(Object.new, :zorglub) }.to raise_error(Redistent::ConfigError)
     end
   end

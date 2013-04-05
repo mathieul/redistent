@@ -48,11 +48,9 @@ module Redistent
     end
 
     def collection(model, plural_name)
-      description = describe(model)
-      singular_name = plural_name.to_s.singularize.to_sym
-      collection = description.collections.find { |item| item.model == singular_name }
+      collection = describe(model).collections[plural_name]
       if collection.nil?
-        raise ConfigError, "collection #{plural_name.inspect} not found for #{model.class}."
+        raise CollectionNotFound, "collection #{plural_name.inspect} not found for #{model.class}."
       end
       Collection.new(model, key, self, collection)
     end
