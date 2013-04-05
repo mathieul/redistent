@@ -1,7 +1,8 @@
 module Redistent
   module HasModelKeys
     def model_key(model)
-      key[model.class.to_s]
+      model_name = model.is_a?(Symbol) ? model.to_s.camelize : model.class.to_s
+      key[model_name]
     end
 
     def uid_key(model)

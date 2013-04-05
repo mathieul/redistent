@@ -115,10 +115,9 @@ describe Redistent::Accessor do
     end
 
     it "returns a collection if it exists" do
-      Redistent::Collection.should_receive(:new) do |ze_model, ze_key, ze_locker, description|
+      Redistent::Collection.should_receive(:new) do |ze_accessor, ze_model, description|
+        expect(ze_accessor).to eq(accessor)
         expect(ze_model).to eq(band)
-        expect(ze_key).to eq(accessor.key)
-        expect(ze_locker).to eq(accessor)
         expect(description.model).to eq(:musician)
         expect(description.type).to eq(:referenced)
         expect(description.attribute).to eq(:band_uid)

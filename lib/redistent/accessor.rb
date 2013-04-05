@@ -48,11 +48,11 @@ module Redistent
     end
 
     def collection(model, plural_name)
-      collection = describe(model).collections[plural_name]
-      if collection.nil?
+      description = describe(model).collections[plural_name]
+      if description.nil?
         raise CollectionNotFound, "collection #{plural_name.inspect} not found for #{model.class}."
       end
-      Collection.new(model, key, self, collection)
+      Collection.new(self, model, description)
     end
 
     private
