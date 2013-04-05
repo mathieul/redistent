@@ -57,7 +57,7 @@ module Redistent
       unless via.nil?
         model, attribute = collection.model, collection.attribute
         collection.model = via.to_s.singularize.to_sym
-        collection.attribute = :"#{collection.model}_uid"
+        collection.attribute = :"#{current_model.name}_uid"
         collection.target, collection.target_attribute = model, attribute
       end
       current_model.collections[plural_name] = collection

@@ -88,6 +88,7 @@ module Redistent
         reference_key = index_key(model, attribute_name)
         reference_key[value].sadd(model.uid)
       end
+      reference_key(model, attribute_name).set(value)
     end
 
     def run_hooks(name, model)

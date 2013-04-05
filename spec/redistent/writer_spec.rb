@@ -56,7 +56,7 @@ describe Redistent::Writer do
   end
 
   context "write model with references" do
-    it "saves the reference uid instead of the object" do
+    it "writes the reference uid instead of the object" do
       %w[123 456].each(&mock_next_uids)
       writer.write(metallica)
       writer.write(james)
@@ -64,7 +64,7 @@ describe Redistent::Writer do
       expect(attributes).to eq("name" => "James Hetfield", "band_uid" => "123")
     end
 
-    it "saves the referenced objects if necessary" do
+    it "writes the referenced objects if necessary" do
       config.add_model :instrument do
         references :musician
       end
@@ -75,11 +75,18 @@ describe Redistent::Writer do
       expect(redis.smembers("writer:Band:all")).to eq(["42"])
     end
 
-    it "saves an index per reference" do
+    it "writes an index per reference" do
       metallica.uid = "M39"
       james.uid = "J40"
       writer.write(james)
       expect(redis.smembers("writer:Musician:indices:band_uid:M39")).to eq(["J40"])
+    end
+
+    it "writes a value for each reference uid" do
+      metallica.uid = "M39"
+      james.uid = "J40"
+      writer.write(james)
+      expect(redis.get("writer:Musician:J40:band_uid")).to eq("M39")
     end
 
     it "removes old references when updating a model" do

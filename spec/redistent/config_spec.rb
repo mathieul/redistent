@@ -76,7 +76,7 @@ describe Redistent::Config do
       collection = config.models[:queue].collections[:teammates]
       expect(collection.type).to eq(:referenced)
       expect(collection.model).to eq(:skill)
-      expect(collection.attribute).to eq(:skill_uid)
+      expect(collection.attribute).to eq(:queue_uid)
       expect(collection.target).to eq(:teammate)
       expect(collection.target_attribute).to eq(:teammate_uid)
     end

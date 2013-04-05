@@ -19,6 +19,7 @@ module Redistent
       describe(model).references.each do |reference|
         if (ref_uid = attributes[reference.attribute])
           index_key(model, reference.attribute)[ref_uid].srem(model.uid)
+          reference_key(model, reference.attribute).del
         end
       end
     end

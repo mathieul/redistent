@@ -11,15 +11,29 @@ module Redistent
     end
 
     def count
-      accessor.with_lock { collection_key.scard }
+      if description.target_attribute.nil?
+        accessor.with_lock { collection_key.scard }
+      else
+        uids.length
+      end
     end
 
     def uids
-      accessor.with_lock { collection_key.smembers }
+      if description.target_attribute.nil?
+        accessor.with_lock { collection_key.smembers }
+      else
+        accessor.with_lock {
+          collection_key.sort(
+            by: "nosort",
+            get: reference_keys(description.model, description.target_attribute)
+          )
+        }
+      end
     end
 
     def all
-      uids.map { |uid| accessor.read(description.model, uid) }
+      model_name = description.target || description.model
+      uids.map { |uid| accessor.read(model_name, uid) }
     end
 
     private

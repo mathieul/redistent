@@ -13,6 +13,14 @@ module Redistent
       model_key(model)[model.uid]
     end
 
+    def reference_key(model, attribute_name)
+      attribute_key(model)[attribute_name]
+    end
+
+    def reference_keys(model, attribute_name)
+      model_key(model)["*"][attribute_name]
+    end
+
     def index_key(model, attribute_name)
       model_key(model)["indices"][attribute_name]
     end
