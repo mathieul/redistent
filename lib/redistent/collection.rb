@@ -29,7 +29,7 @@ module Redistent
     end
 
     def collection_key
-      index_key(description.model, description.attribute)[model.uid]
+      @collection_key ||= index_key(description.model, description.attribute)[model.uid]
     end
 
     module ReferencedAbilities
@@ -67,15 +67,41 @@ module Redistent
 
     module SortedAbilities
       def uids
+        accessor.with_lock { collection_key.zrange(0, -1) }
+      end
+
+      def first_uid
         accessor.with_lock {
-          reference = description.reference
-          the_key = sorted_key(reference.model, model.uid, description.attribute)
-          the_key.zrange(0, -1)
+          collection_key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first
+        }
+      end
+
+      def last_uid
+        accessor.with_lock {
+          collection_key.zrevrangebyscore("+inf", "-inf", limit: [0, 1]).first
         }
       end
 
       def all
         uids.map { |uid| accessor.read(description.model, uid) }
+      end
+
+      def first
+        read(first_uid)
+      end
+
+      def last
+        read(last_uid)
+      end
+
+      private
+
+      def collection_key
+        @collection_key ||= sorted_key(description.reference.model, model.uid, description.attribute)
+      end
+
+      def read(uid)
+        uid ? accessor.read(description.model, uid) : nil
       end
     end
   end

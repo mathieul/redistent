@@ -99,19 +99,32 @@ describe Redistent::Collection do
   context "sorted collection" do
     let(:model)       { Actor.new(name: "Ryan Gosling") }
     let(:description) { accessor_klass.config.models[:actor].collections[:abilities] }
+    before(:each) do
+      accessor.write(
+        Ability.new(uid: "C01", name: "comedy", score: 9, actor: model),
+        Ability.new(uid: "M02", name: "musical", score: 8, actor: model),
+        Ability.new(uid: "D03", name: "drama", score: 10, actor: model)
+      )
+    end
 
     it "uses a sorted set when using :sort_by option" do
-      accessor.write(
-        Ability.new(name: "comedy", score: 9, actor: model),
-        Ability.new(name: "musical", score: 8, actor: model),
-        Ability.new(name: "drama", score: 10, actor: model)
-      )
       expect(collection.all.map(&:name)).to eq(["musical", "comedy", "drama"])
     end
 
-    it "can return the first uid(s)"
-    it "can return the last uid(s)"
-    it "can return the first referrer(s)"
-    it "can return the last referrer(s)"
+    it "can return the first uid" do
+      expect(collection.first_uid).to eq("M02")
+    end
+
+    it "can return the last uid" do
+      expect(collection.last_uid).to eq("D03")
+    end
+
+    it "can return the first referrer" do
+      expect(collection.first.name).to eq("musical")
+    end
+
+    it "can return the last referrer" do
+      expect(collection.last.name).to eq("drama")
+    end
   end
 end
