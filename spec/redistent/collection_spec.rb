@@ -12,6 +12,7 @@ class Ability
   include Virtus
   attr_accessor :uid, :persisted_attributes
   attribute :name, String
+  attribute :score, Integer
 end
 
 class Movie
@@ -28,25 +29,26 @@ class Role
   attribute :movie, Movie
 end
 
-class Cinema
-  include Redistent::Accessor
-  model :actor
-  model :movie do
-    collection :actors, via: :roles
-  end
-  model :role do
-    references :actor
-    references :movie
-  end
-end
-
 describe Redistent::Collection do
-  let(:accessor)   { Cinema.new(redis_config) }
+  let(:accessor_klass) {
+    Class.new.tap do |klass|
+      klass.send(:include, Redistent::Accessor)
+      klass.model :actor
+      klass.model :movie do
+        collection :actors, via: :roles
+      end
+      klass.model :role do
+        references :actor
+        references :movie
+      end
+    end
+  }
+  let(:accessor)   { accessor_klass.new(redis_config) }
   let(:collection) { Redistent::Collection.new(accessor, model, description) }
 
   context "referenced collection" do
     let(:model)       { Actor.new(name: "Daniel Craig") }
-    let(:description) { Cinema.config.models[:actor].collections[:roles] }
+    let(:description) { accessor_klass.config.models[:actor].collections[:roles] }
     before(:each) do
       accessor.write(
         Role.new(character: "James Bond", actor: model),
@@ -68,7 +70,7 @@ describe Redistent::Collection do
 
   context "indirect referenced collection" do
     let(:model)       { Movie.new(title: "Pulp Fiction") }
-    let(:description) { Cinema.config.models[:movie].collections[:actors] }
+    let(:description) { accessor_klass.config.models[:movie].collections[:actors] }
     before(:each) do
       accessor.write(
         Role.new(character: "Vincent Vega", movie: model, actor: Actor.new(name: "John Travolta")),
