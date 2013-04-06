@@ -9,7 +9,9 @@ module RedisHelper
         config.add_model :musician do
           references :band
         end
-        config.add_model :band
+        config.add_model :band do
+          collection :songs, sort_by: :popularity
+        end
         config.add_model :song do
           references :band
         end
