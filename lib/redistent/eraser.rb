@@ -20,6 +20,8 @@ module Redistent
         if (ref_uid = attributes[reference.attribute])
           index_key(model, reference.attribute)[ref_uid].srem(model.uid)
           reference_key(model, reference.attribute).del
+          sorted = sorted_key(reference.model, ref_uid, reference.collection.attribute)
+          sorted.zrem(model.uid)
         end
       end
     end
