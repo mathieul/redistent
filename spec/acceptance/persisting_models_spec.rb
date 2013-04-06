@@ -74,6 +74,7 @@ class PersistentAccessor
     references :team
     collection :task_queues, via: :skills
   end
+  model :task
   model :task_queue do
     embeds :tasks, sort_by: :queued_at do
       define(:count)    { |key| key.zcard }

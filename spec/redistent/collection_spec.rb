@@ -96,6 +96,7 @@ describe Redistent::Collection do
     let(:description) { accessor_klass.config.models[:actor].collections[:abilitys] }
 
     it "can run custom methods" do
+      accessor_klass.model :ability
       accessor_klass.model :actor do
         embeds :abilitys do
           define(:count) { |key| key.scard }
@@ -109,6 +110,7 @@ describe Redistent::Collection do
     end
 
     it "uses a sorted set when using :sort_by option" do
+      accessor_klass.model :ability
       accessor_klass.model :actor do
         embeds :abilitys do
           define(:best) { |key| key.zrevrangebyscore("-inf", "+inf", limit: [0, 1]).first }
