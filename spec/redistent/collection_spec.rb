@@ -101,13 +101,12 @@ describe Redistent::Collection do
     let(:description) { accessor_klass.config.models[:actor].collections[:abilities] }
 
     it "uses a sorted set when using :sort_by option" do
-      pending
       accessor.write(
         Ability.new(name: "comedy", score: 9, actor: model),
         Ability.new(name: "musical", score: 8, actor: model),
         Ability.new(name: "drama", score: 10, actor: model)
       )
-      expect(collection.all.map(&name)).to eq(["musical", "comedy", "drama"])
+      expect(collection.all.map(&:name)).to eq(["musical", "comedy", "drama"])
     end
 
     it "can return the first uid(s)"

@@ -19,6 +19,8 @@ module Redistent
         extend(ReferencedAbilities)
       when :indirect
         extend(IndirectAbilities)
+      when :sorted
+        extend(SortedAbilities)
       end
     end
 
@@ -60,6 +62,20 @@ module Redistent
 
       def all
         uids.map { |uid| accessor.read(description.target, uid) }
+      end
+    end
+
+    module SortedAbilities
+      def uids
+        accessor.with_lock {
+          reference = description.reference
+          the_key = sorted_key(reference.model, model.uid, description.attribute)
+          the_key.zrange(0, -1)
+        }
+      end
+
+      def all
+        uids.map { |uid| accessor.read(description.model, uid) }
       end
     end
   end
