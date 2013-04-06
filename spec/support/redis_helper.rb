@@ -10,7 +10,9 @@ module RedisHelper
           references :band
         end
         config.add_model :band
-        config.add_model :song
+        config.add_model :song do
+          references :band
+        end
       end
     end
   end

@@ -94,21 +94,32 @@ describe Redistent::Writer do
     end
 
     it "writes the sorted index if necessary" do
-      config.add_model :song do
-        references :band
-      end
       config.add_model :band do
         collection :songs, sort_by: :popularity
       end
       config.finalize!
+
       led_zeppelin = Band.new(uid: "K42", name: "Led Zeppelin")
-      stairway = Song.new(uid: "STH", title: "Stairway To Heaven", popularity: 10, band: led_zeppelin)
+      stairway = Song.new(uid: "STH", title: "Stairway To Heaven", popularity: 9, band: led_zeppelin)
       writer.write(stairway)
       uids_with_scores = redis.zrange("writer:Band:K42:song_uids", 0, -1, with_scores: true)
-      expect(uids_with_scores).to eq([["STH", 10.0]])
+      expect(uids_with_scores).to eq([["STH", 9.0]])
     end
 
-    it "cleans up hte sorted index if necessary"
+    it "cleans up the sorted index if necessary" do
+      config.add_model :band do
+        collection :songs, sort_by: :popularity
+      end
+      config.finalize!
+
+      matisyahu = Band.new(uid: "M04", name: "Matisyahu")
+      song = Song.new(uid: "RX", title: "Roxane", popularity: 10, band: matisyahu)
+      writer.write(song)
+      song.band = Band.new(uid: "P77", name: "Police")
+      writer.write(song)
+      expect(redis.zrange("writer:Band:M04:song_uids", 0, -1)).to be_empty
+      expect(redis.zrange("writer:Band:P77:song_uids", 0, -1)).to eq(["RX"])
+    end
 
     it "removes old references when updating a model" do
       config.finalize!
