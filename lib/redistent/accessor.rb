@@ -27,6 +27,7 @@ module Redistent
     def initialize(config)
       @key = Nest.new("redistent", Redis.new(config))
       @mutex = Mutex.new
+      self.class.config.finalize!
     end
 
     def with_lock

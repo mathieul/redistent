@@ -6,10 +6,10 @@ module Redistent
       :name, :persist_attributes, :hooks, :references, :collections
     )
     ReferenceDescription = Struct.new(
-      :model, :attribute
+      :model, :attribute, :collection
     )
     CollectionDescription = Struct.new(
-      :model, :type, :attribute, :sort_by, :target, :target_attribute
+      :model, :type, :attribute, :sort_by, :target, :target_attribute, :reference
     )
 
     def hooks
@@ -50,6 +50,21 @@ module Redistent
       end
       add_indirection_to_collection(collection, via) unless via.nil?
       current_model.collections[plural_name] = collection
+    end
+
+    def finalize!
+      return if @finalized
+      models.each do |model_name, model|
+        plural_name = model_name.to_s.pluralize.to_sym
+        model.references.each do |reference|
+          unless (reference_model = models[reference.model])
+            raise ConfigError, "Model #{type.inspect} hasn't been described"
+          end
+          reference.collection = reference_model.collections[plural_name]
+          reference.collection.reference = reference
+        end
+      end
+      @finalized = true
     end
 
     private

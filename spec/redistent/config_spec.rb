@@ -78,5 +78,33 @@ describe Redistent::Config do
       config.add_model(:model_name)
       expect(config.models[:model_name].hooks[:before_write]).to eq([:run_me])
     end
+
+    it "connects references to collections after finalization" do
+      config.add_model :team do
+        collection :queues, sort_by: :priority
+      end
+      config.add_model :queue do
+        references :team
+      end
+
+      config.finalize!
+      reference = config.models[:team].collections[:queues].reference
+      expect(reference.model).to eq(:team)
+      expect(reference.attribute).to eq(:team_uid)
+    end
+
+    it "connects collections to references after finalization" do
+      config.add_model :team do
+        collection :queues
+      end
+      config.add_model :queue do
+        references :team
+      end
+
+      config.finalize!
+      collection = config.models[:queue].references.first.collection
+      expect(collection.model).to eq(:queue)
+      expect(collection.attribute).to eq(:queue_uid)
+    end
   end
 end

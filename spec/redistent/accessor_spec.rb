@@ -4,9 +4,16 @@ require "music_classes"
 describe Redistent::Accessor do
   let(:klass) { Class.new.tap { |klass| klass.send(:include, Redistent::Accessor) } }
 
-  it "is initialized with redis config" do
-    accessor = klass.new(url: "redis://127.0.0.1:6379/7")
-    expect(accessor.key.redis.client.port).to eq(6379)
+  context "a new instance" do
+    it "is initialized with redis config" do
+      accessor = klass.new(url: "redis://127.0.0.1:6379/7")
+      expect(accessor.key.redis.client.port).to eq(6379)
+    end
+
+    it "finalizes the config" do
+      klass.config.should_receive(:finalize!)
+      klass.new(redis_config)
+    end
   end
 
   context "DSL" do
