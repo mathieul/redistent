@@ -129,7 +129,6 @@ all_teammates = accessor.collection(feature_queue, :teammates).all
 accessor.write(Task.new(title: "generate csv report", queue: feature_queue))
 task_collection = accessor.collection(feature_queue, :tasks)
 next_task_uid = task_collection.first_uid
-last_tasks = task_collection.last(3)
 ```
 
 ## Contributing

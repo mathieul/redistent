@@ -18,7 +18,7 @@ class Task
   attr_accessor :uid, :persisted_attributes
   attribute :title, String
   attribute :task_queue, TaskQueue
-  attribute :queued_at, DateTime
+  attribute :queued_at, Time
   def validate
     assert_present :title
   end
@@ -141,7 +141,6 @@ feature "persisting models" do
   end
 
   scenario "query a model's sorted collection" do
-    pending
     queue = TaskQueue.new(name: "fix bugs")
     def queue.add_task(task)
       task.queued_at = Time.now
@@ -149,15 +148,14 @@ feature "persisting models" do
     end
     task1 = Task.new(title: "bug #123")
     task2 = Task.new(title: "bug #456")
-    accessor.write(queue, task1, task2)
 
     queue.add_task(task2)
     queue.add_task(task1)
-    accessor.write(task1, task2)
+    accessor.write(queue, task1, task2)
 
     queue = accessor.read(:task_queue, queue.uid)
     collection = accessor.collection(queue, :tasks)
     expect(collection.count).to eq(2)
-    expect(collection.next_uid).to eq(task2)
+    expect(collection.first_uid).to eq(task2.uid)
   end
 end

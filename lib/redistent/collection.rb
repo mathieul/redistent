@@ -66,6 +66,10 @@ module Redistent
     end
 
     module SortedAbilities
+      def count
+        accessor.with_lock { collection_key.zcard }
+      end
+
       def uids
         accessor.with_lock { collection_key.zrange(0, -1) }
       end

@@ -107,7 +107,11 @@ describe Redistent::Collection do
       )
     end
 
-    it "uses a sorted set when using :sort_by option" do
+    it "can count the number of referrers" do
+      expect(collection.count).to eq(3)
+    end
+
+    it "can return all the referrers" do
       expect(collection.all.map(&:name)).to eq(["musical", "comedy", "drama"])
     end
 
