@@ -40,33 +40,15 @@ describe Redistent::Config do
       expect(collection.model).to eq(:queue)
     end
 
-    it "defines an embedded collection with #embeds" do
+    it "defines a sorted collection with #collection with a sort_by option" do
       config.add_model :queue do
-        embeds :tasks
+        collection :tasks, sort_by: :queued_at
       end
       collection = config.models[:queue].collections[:tasks]
-      expect(collection.type).to eq(:embedded)
-      expect(collection.sort_by).to be_false
+      expect(collection.type).to eq(:sorted)
       expect(collection.model).to eq(:task)
-      expect(collection.attribute).to eq(:task_uid)
-    end
-
-    it "defines a sorted embedded collection with #embeds with a sort_by option" do
-      config.add_model :queue do
-        embeds :tasks, sort_by: :queued_at
-      end
-      expect(config.models[:queue].collections[:tasks].sort_by).to eq(:queued_at)
-    end
-
-    it "defines methods on an embedded collection with #define" do
-      called_with = nil
-      config.add_model :queue do
-        embeds :tasks do
-          define(:testing) { |key| called_with = key }
-        end
-      end
-      config.models[:queue].collections[:tasks].methods[:testing].call(:test)
-      expect(called_with).to eq(:test)
+      expect(collection.attribute).to eq(:task_uids)
+      expect(collection.sort_by).to eq(:queued_at)
     end
 
     it "defines an indirect collection with #collection and :via option" do
@@ -79,6 +61,14 @@ describe Redistent::Config do
       expect(collection.attribute).to eq(:queue_uid)
       expect(collection.target).to eq(:teammate)
       expect(collection.target_attribute).to eq(:teammate_uid)
+    end
+
+    it "raises an error if both :via and :sort_by are used" do
+      expect {
+        config.add_model :queue do
+          collection :teammates, via: :skills, sort_by: :name
+        end
+      }.to raise_error(Redistent::ConfigError)
     end
   end
 

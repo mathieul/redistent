@@ -74,12 +74,11 @@ class PersistentAccessor
     references :team
     collection :task_queues, via: :skills
   end
-  model :task
+  model :task do
+    references :task_queue
+  end
   model :task_queue do
-    embeds :tasks, sort_by: :queued_at do
-      define(:count)    { |key| key.zcard }
-      define(:next_uid) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
-    end
+    collection :tasks, sort_by: :queued_at
     collection :teammates, via: :skills
   end
   model :skill do
@@ -141,15 +140,20 @@ feature "persisting models" do
     expect(collection.all.map(&:name).sort).to eq(["enhancements", "fix bugs"])
   end
 
-  scenario "query a model's embedded collection" do
+  scenario "query a model's sorted collection" do
     pending
     queue = TaskQueue.new(name: "fix bugs")
+    def queue.add_task(task)
+      task.queued_at = Time.now
+      task.task_queue = self
+    end
     task1 = Task.new(title: "bug #123")
     task2 = Task.new(title: "bug #456")
     accessor.write(queue, task1, task2)
 
-    accessor.collection(queue, :tasks) << task2
-    accessor.collection(queue, :tasks) << task1
+    queue.add_task(task2)
+    queue.add_task(task1)
+    accessor.write(task1, task2)
 
     queue = accessor.read(:task_queue, queue.uid)
     collection = accessor.collection(queue, :tasks)

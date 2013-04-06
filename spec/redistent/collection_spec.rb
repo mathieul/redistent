@@ -34,7 +34,12 @@ describe Redistent::Collection do
   let(:accessor_klass) {
     Class.new.tap do |klass|
       klass.send(:include, Redistent::Accessor)
-      klass.model :actor
+      klass.model :actor do
+        collection :abilitys, sort_by: :score
+      end
+      klass.model :ability do
+        references :actor
+      end
       klass.model :movie do
         collection :actors, via: :roles
       end
@@ -91,37 +96,23 @@ describe Redistent::Collection do
     end
   end
 
-  context "embedded collection" do
+  context "sorted collection" do
     let(:model)       { Actor.new(name: "Ryan Gosling") }
     let(:description) { accessor_klass.config.models[:actor].collections[:abilitys] }
 
-    it "can run custom methods" do
-      accessor_klass.model :ability
-      accessor_klass.model :actor do
-        embeds :abilitys do
-          define(:count) { |key| key.scard }
-        end
-      end
-      accessor.write(
-        Ability.new(name: "comedy", actor: model),
-        Ability.new(name: "drama", actor: model)
-      )
-      expect(collection.count).to eq(2)
-    end
-
     it "uses a sorted set when using :sort_by option" do
-      accessor_klass.model :ability
-      accessor_klass.model :actor do
-        embeds :abilitys do
-          define(:best) { |key| key.zrevrangebyscore("-inf", "+inf", limit: [0, 1]).first }
-        end
-      end
+      pending
       accessor.write(
         Ability.new(name: "comedy", score: 9, actor: model),
-        Ability.new(name: "drama", score: 10, actor: model),
-        Ability.new(name: "musical", score: 8, actor: model)
+        Ability.new(name: "musical", score: 8, actor: model),
+        Ability.new(name: "drama", score: 10, actor: model)
       )
-      expect(collection.best.name).to eq("drama")
+      expect(collection.all.map(&name)).to eq(["musical", "comedy", "drama"])
     end
+
+    it "can return the first uid(s)"
+    it "can return the last uid(s)"
+    it "can return the first referrer(s)"
+    it "can return the last referrer(s)"
   end
 end

@@ -31,7 +31,7 @@ require "redistent"
 require "virtus"
 require "scrivener"
 
-class TaskQueue
+class Queue
   include Virtus
   include Scrivener::Validations
   attr_accessor :uid, :persisted_attributes
@@ -46,7 +46,7 @@ class Task
   include Scrivener::Validations
   attr_accessor :uid, :persisted_attributes
   attribute :title, String
-  attribute :task_queue, TaskQueue
+  attribute :queue, Queue
   attribute :queued_at, DateTime
   def validate
     assert_present :title
@@ -80,10 +80,10 @@ class Skill
   include Scrivener::Validations
   attr_accessor :uid, :persisted_attributes
   attribute :level, Integer
-  attribute :task_queue, TaskQueue
+  attribute :queue, Queue
   attribute :teammate, Teammate
   def validate
-    %i[level task_queue teammate].each { |name| assert_present(name) }
+    %i[level queue teammate].each { |name| assert_present(name) }
     assert_numeric :level
   end
 end
@@ -91,19 +91,20 @@ end
 class PersistentAccessor
   include Redistent::Accessor
   before_write :valid?
-  model :task_queue do
-    embeds :tasks, sort_by: :queued_at do
-      define(:count)    { |key| key.zcard }
-      define(:next_uid) { |key| key.zrangebyscore("-inf", "+inf", limit: [0, 1]).first }
-    end
-    collection :teammates, via: :skills
-  end
+  model :team
   model :teammate do
     references :team
-    collection :task_queues, via: :skills
+    collection :queues, via: :skills
+  end
+  model :task do
+    references :queue
+  end
+  model :queue do
+    collection :tasks, sort_by: :queued_at
+    collection :teammates, via: :skills
   end
   model :skill do
-    references :task_queue
+    references :queue
     references :teammate
   end
 end
@@ -111,9 +112,9 @@ end
 accessor = PersistentAccessor.new(url: "redis://127.0.0.1:6379/7")
 
 # write/read/erase
-bug_queue = TaskQueue.new(name: "fix bugs")
+bug_queue = Queue.new(name: "fix bugs")
 accessor.write(bug_queue)
-feature_queue = accessor.read(:task_queue, "id123")
+feature_queue = accessor.read(:queue, "id123")
 accessor.erase(bug_queue)
 
 # collection of referrers
@@ -124,10 +125,11 @@ all_skills = skill_collection.all
 # collection of indirect referrers
 all_teammates = accessor.collection(feature_queue, :teammates).all
 
-# collection of embedded objects
+# collection of sorted referrers
+accessor.write(Task.new(title: "generate csv report", queue: feature_queue))
 task_collection = accessor.collection(feature_queue, :tasks)
-task_collection << Task.new(title: "generate csv report")
-next_task_uid = task_collection.next_uid
+next_task_uid = task_collection.first_uid
+last_tasks = task_collection.last(3)
 ```
 
 ## Contributing

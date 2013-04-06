@@ -1,6 +1,6 @@
 module Redistent
   class Config
-    attr_reader :current_model, :current_collection
+    attr_reader :current_model
 
     ModelDescription = Struct.new(
       :name, :persist_attributes, :hooks, :references, :collections
@@ -9,7 +9,7 @@ module Redistent
       :model, :attribute
     )
     CollectionDescription = Struct.new(
-      :model, :type, :sort_by, :attribute, :target, :target_attribute, :methods
+      :model, :type, :attribute, :sort_by, :target, :target_attribute
     )
 
     def hooks
@@ -37,38 +37,38 @@ module Redistent
       add_implicit_collection(singular_name, current_model.name)
     end
 
-    def embeds(plural_name, sort_by: false, &block)
+    def collection(plural_name, via: nil, sort_by: nil)
       singular_name = plural_name.to_s.singularize.to_sym
       collection = CollectionDescription.new(
-        singular_name, :embedded, sort_by, :"#{singular_name}_uid"
+        singular_name,
+        collection_type(via, sort_by),
+        :"#{singular_name}_uid",
+        sort_by
       )
-      if block_given?
-        collection.methods = {}
-        with_collection(collection, &block)
+      if collection.type == :sorted
+        collection.attribute = collection.attribute.to_s.pluralize.to_sym
       end
+      add_indirection_to_collection(collection, via) unless via.nil?
       current_model.collections[plural_name] = collection
-    end
-
-    def collection(plural_name, via: nil)
-      singular_name = plural_name.to_s.singularize.to_sym
-      type = via.nil? ? :referenced : :indirect
-      collection = CollectionDescription.new(
-        singular_name, type, nil, :"#{singular_name}_uid"
-      )
-      unless via.nil?
-        model, attribute = collection.model, collection.attribute
-        collection.model = via.to_s.singularize.to_sym
-        collection.attribute = :"#{current_model.name}_uid"
-        collection.target, collection.target_attribute = model, attribute
-      end
-      current_model.collections[plural_name] = collection
-    end
-
-    def define(name, &block)
-      current_collection.methods[name] = block
     end
 
     private
+
+    def collection_type(via, sort_by)
+      unless via.nil? or sort_by.nil?
+        raise ConfigError, "Can't declare a collection using both :via and :sort_by"
+      end
+      return :sorted if sort_by
+      return :indirect if via
+      :referenced
+    end
+
+    def add_indirection_to_collection(collection, via)
+      model, attribute = collection.model, collection.attribute
+      collection.model = via.to_s.singularize.to_sym
+      collection.attribute = :"#{current_model.name}_uid"
+      collection.target, collection.target_attribute = model, attribute
+    end
 
     def with_model(model, &block)
       old_model = @current_model
@@ -77,18 +77,11 @@ module Redistent
       @current_model = old_model
     end
 
-    def with_collection(collection, &block)
-      old_collection = @current_collection
-      @current_collection = collection
-      instance_eval(&block)
-      @current_collection = old_collection
-    end
-
     def add_implicit_collection(model_name, collection_name)
       model = add_model(model_name) unless model = models[model_name]
       plural_name = collection_name.to_s.pluralize.to_sym
       model.collections[plural_name] ||= CollectionDescription.new(
-        collection_name, :referenced, nil, :"#{model_name}_uid"
+        collection_name, :referenced, :"#{model_name}_uid"
       )
     end
   end
