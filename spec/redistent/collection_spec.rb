@@ -35,7 +35,7 @@ describe Redistent::Collection do
     Class.new.tap do |klass|
       klass.send(:include, Redistent::Accessor)
       klass.model :actor do
-        collection :abilitys, sort_by: :score
+        collection :abilities, sort_by: :score
       end
       klass.model :ability do
         references :actor
@@ -98,7 +98,7 @@ describe Redistent::Collection do
 
   context "sorted collection" do
     let(:model)       { Actor.new(name: "Ryan Gosling") }
-    let(:description) { accessor_klass.config.models[:actor].collections[:abilitys] }
+    let(:description) { accessor_klass.config.models[:actor].collections[:abilities] }
 
     it "uses a sorted set when using :sort_by option" do
       pending

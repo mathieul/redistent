@@ -1,4 +1,5 @@
 require "bson"
+require "inflecto"
 
 module Redistent
   class Reader
@@ -10,7 +11,7 @@ module Redistent
     end
 
     def read(model_type, uid)
-      class_name = model_type.to_s.camelize
+      class_name = Inflecto.camelize(model_type)
       klass = Object.const_get(class_name.to_sym)
       attributes = read_attributes(class_name, uid)
       attributes = replace_uids_with_instances!(model_type, attributes)

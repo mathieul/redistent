@@ -1,3 +1,5 @@
+require "inflecto"
+
 module Redistent
   class Config
     attr_reader :current_model
@@ -38,7 +40,7 @@ module Redistent
     end
 
     def collection(plural_name, via: nil, sort_by: nil)
-      singular_name = plural_name.to_s.singularize.to_sym
+      singular_name = Inflecto.singularize(plural_name).to_sym
       collection = CollectionDescription.new(
         singular_name,
         collection_type(via, sort_by),
@@ -46,7 +48,7 @@ module Redistent
         sort_by
       )
       if collection.type == :sorted
-        collection.attribute = collection.attribute.to_s.pluralize.to_sym
+        collection.attribute = Inflecto.pluralize(collection.attribute).to_sym
       end
       add_indirection_to_collection(collection, via) unless via.nil?
       current_model.collections[plural_name] = collection
@@ -55,7 +57,7 @@ module Redistent
     def finalize!
       return if @finalized
       models.each do |model_name, model|
-        plural_name = model_name.to_s.pluralize.to_sym
+        plural_name = Inflecto.pluralize(model_name).to_sym
         model.references.each do |reference|
           unless (reference_model = models[reference.model])
             raise ConfigError, "Model #{type.inspect} hasn't been described"
@@ -80,7 +82,7 @@ module Redistent
 
     def add_indirection_to_collection(collection, via)
       model, attribute = collection.model, collection.attribute
-      collection.model = via.to_s.singularize.to_sym
+      collection.model = Inflecto.singularize(via).to_sym
       collection.attribute = :"#{current_model.name}_uid"
       collection.target, collection.target_attribute = model, attribute
     end
@@ -94,7 +96,7 @@ module Redistent
 
     def add_implicit_collection(model_name, collection_name)
       model = add_model(model_name) unless model = models[model_name]
-      plural_name = collection_name.to_s.pluralize.to_sym
+      plural_name = Inflecto.pluralize(collection_name).to_sym
       model.collections[plural_name] ||= CollectionDescription.new(
         collection_name, :referenced, :"#{model_name}_uid"
       )
