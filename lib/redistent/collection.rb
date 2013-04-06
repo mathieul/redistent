@@ -8,35 +8,19 @@ module Redistent
       @accessor    = accessor
       @model       = model
       @description = description
-    end
-
-    def count
-      if description.type == :referenced
-        accessor.with_lock { collection_key.scard }
-      else
-        uids.length
-      end
-    end
-
-    def uids
-      if description.type == :referenced
-        accessor.with_lock { collection_key.smembers }
-      else
-        accessor.with_lock {
-          collection_key.sort(
-            by: "nosort",
-            get: reference_keys(description.model, description.target_attribute)
-          )
-        }
-      end
-    end
-
-    def all
-      model_name = description.target || description.model
-      uids.map { |uid| accessor.read(model_name, uid) }
+      add_abilities(description.type)
     end
 
     private
+
+    def add_abilities(type)
+      case type
+      when :referenced
+        extend(ReferencedAbilities)
+      when :indirect
+        extend(IndirectAbilities)
+      end
+    end
 
     def key
       accessor.key
@@ -44,6 +28,39 @@ module Redistent
 
     def collection_key
       index_key(description.model, description.attribute)[model.uid]
+    end
+
+    module ReferencedAbilities
+      def count
+        accessor.with_lock { collection_key.scard }
+      end
+
+      def uids
+        accessor.with_lock { collection_key.smembers }
+      end
+
+      def all
+        uids.map { |uid| accessor.read(description.model, uid) }
+      end
+    end
+
+    module IndirectAbilities
+      def count
+        uids.length
+      end
+
+      def uids
+        accessor.with_lock {
+          collection_key.sort(
+            by: "nosort",
+            get: reference_keys(description.model, description.target_attribute)
+          )
+        }
+      end
+
+      def all
+        uids.map { |uid| accessor.read(description.target, uid) }
+      end
     end
   end
 end
