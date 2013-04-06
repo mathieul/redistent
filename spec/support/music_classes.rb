@@ -21,3 +21,12 @@ class Instrument
   attribute :type, String
   attribute :musician, Musician
 end
+
+class Song
+  include Virtus
+  attr_accessor :uid, :persisted_attributes
+  attribute :title, String
+  attribute :popularity, Fixnum
+  attribute :band, Band
+end
+

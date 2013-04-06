@@ -57,6 +57,7 @@ describe Redistent::Writer do
 
   context "write model with references" do
     it "writes the reference uid instead of the object" do
+      config.finalize!
       %w[123 456].each(&mock_next_uids)
       writer.write(metallica)
       writer.write(james)
@@ -68,6 +69,7 @@ describe Redistent::Writer do
       config.add_model :instrument do
         references :musician
       end
+      config.finalize!
       %w[7 12 42].each(&mock_next_uids)
       writer.write(guitar)
       expect(redis.smembers("writer:Instrument:all")).to eq(["7"])
@@ -76,6 +78,7 @@ describe Redistent::Writer do
     end
 
     it "writes an index per reference" do
+      config.finalize!
       metallica.uid = "M39"
       james.uid = "J40"
       writer.write(james)
@@ -83,13 +86,32 @@ describe Redistent::Writer do
     end
 
     it "writes a value for each reference uid" do
+      config.finalize!
       metallica.uid = "M39"
       james.uid = "J40"
       writer.write(james)
       expect(redis.get("writer:Musician:J40:band_uid")).to eq("M39")
     end
 
+    it "writes the sorted index if necessary" do
+      config.add_model :song do
+        references :band
+      end
+      config.add_model :band do
+        collection :songs, sort_by: :popularity
+      end
+      config.finalize!
+      led_zeppelin = Band.new(uid: "K42", name: "Led Zeppelin")
+      stairway = Song.new(uid: "STH", title: "Stairway To Heaven", popularity: 10, band: led_zeppelin)
+      writer.write(stairway)
+      uids_with_scores = redis.zrange("writer:Band:K42:song_uids", 0, -1, with_scores: true)
+      expect(uids_with_scores).to eq([["STH", 10.0]])
+    end
+
+    it "cleans up hte sorted index if necessary"
+
     it "removes old references when updating a model" do
+      config.finalize!
       suicidal = Band.new(uid: "S43", name: "Suicidal Tendencies")
       bob = Musician.new(uid: "B44", name: "Robert Trujillo", band: suicidal)
       writer.write(bob)

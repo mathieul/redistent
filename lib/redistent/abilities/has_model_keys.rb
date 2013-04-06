@@ -24,5 +24,10 @@ module Redistent
     def index_key(model, attribute_name)
       model_key(model)["indices"][attribute_name]
     end
+
+    def sorted_key(model_type, model_uid, attributes_name)
+      model_name = model_type.to_s.camelize
+      key[model_name][model_uid][attributes_name]
+    end
   end
 end

@@ -9,6 +9,8 @@ module RedisHelper
         config.add_model :musician do
           references :band
         end
+        config.add_model :band
+        config.add_model :song
       end
     end
   end

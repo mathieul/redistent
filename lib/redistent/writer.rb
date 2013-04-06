@@ -72,6 +72,14 @@ module Redistent
       references.each do |reference|
         cleanup_reference_index(model, reference.attribute)
         populate_reference_index(model, reference.attribute, attributes)
+        collection = reference.collection
+        if collection.type == :sorted
+          if (referenced = model.public_send(reference.model))
+            the_key = reference_key(referenced, collection.attribute)
+            score = model.public_send(collection.sort_by).to_f
+            the_key.zadd(score, model.uid)
+          end
+        end
       end
     end
 
