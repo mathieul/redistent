@@ -12,7 +12,7 @@ module Redistent
 
     def read(model_type, uid)
       class_name = Inflecto.camelize(model_type)
-      klass = Object.const_get(class_name.to_sym)
+      klass = models[model_type].namespace.const_get(class_name.to_sym)
       attributes = read_attributes(class_name, uid)
       attributes = replace_uids_with_instances!(model_type, attributes)
       klass.new(attributes.merge(uid: uid)).tap do |model|

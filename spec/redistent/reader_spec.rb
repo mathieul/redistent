@@ -2,6 +2,14 @@ require "spec_helper"
 require "music_classes"
 require "redis_helper"
 
+module ReaderSpecHelper
+  class NamespacedModel
+    include Virtus
+    attr_accessor :uid, :persisted_attributes
+    attribute :name, String
+  end
+end
+
 describe Redistent::Reader do
   include RedisHelper
 
@@ -34,6 +42,14 @@ describe Redistent::Reader do
 
     it "raises an error if no model was found with this uid" do
       expect { reader.read(:band, "doesn-t-exist") }.to raise_error(Redistent::ModelNotFound)
+    end
+
+    it "uses the namespace to infer model classes" do
+      config.set_namespace ReaderSpecHelper
+      config.add_model :namespaced_model
+      redis.set("reader:NamespacedModel:99", BSON.serialize({}).to_s)
+      model = reader.read(:namespaced_model, "99")
+      expect(model).to be_an_instance_of(ReaderSpecHelper::NamespacedModel)
     end
   end
 

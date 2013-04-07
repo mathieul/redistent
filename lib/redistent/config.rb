@@ -4,12 +4,17 @@ module Redistent
   class Config
     attr_reader :current_model
 
-    ModelDescription = Struct.new(
-      :name, :persist_attributes, :hooks, :references, :collections
-    )
-    ReferenceDescription = Struct.new(
-      :model, :attribute, :collection
-    )
+    ModelDescription = Struct.new(:name, :persist_attributes, :config, :references, :collections) do
+      def hooks
+        config.hooks
+      end
+      def namespace
+        config.namespace
+      end
+    end
+
+    ReferenceDescription = Struct.new(:model, :attribute, :collection)
+
     CollectionDescription = Struct.new(
       :model, :type, :attribute, :sort_by, :target, :target_attribute, :reference
     )
@@ -22,15 +27,25 @@ module Redistent
       @models ||= {}
     end
 
+    def namespace
+      @namespace ||= Object
+    end
+
     def add_hook(name, message = nil, &block)
       hook = message ? message : (block || ->{})
       (hooks[name] ||= []) << hook
     end
 
     def add_model(singular_name, &block)
-      definition = models[singular_name] ||= ModelDescription.new(singular_name, true, hooks, [], {})
+      definition = models[singular_name] ||= ModelDescription.new(
+        singular_name, true, self, [], {}
+      )
       with_model(definition, &block) if block_given?
       definition
+    end
+
+    def set_namespace(the_module)
+      @namespace = the_module
     end
 
     def references(singular_name)

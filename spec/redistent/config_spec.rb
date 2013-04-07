@@ -21,6 +21,13 @@ describe Redistent::Config do
       expect(config.models[:name].persist_attributes).to be_true
     end
 
+    it "sets the namespace with #set_namespace" do
+      config.add_model(:blah)
+      expect(config.models[:blah].namespace).to eq(Object)
+      config.set_namespace(Hash)
+      expect(config.models[:blah].namespace).to eq(Hash)
+    end
+
     it "adds a reference to a model with #references" do
       config.add_model :queue do
         references :team

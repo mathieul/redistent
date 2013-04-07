@@ -20,6 +20,10 @@ module Redistent
       def before_write(message = nil, &block)
         config.add_hook(:before_write, message, &block)
       end
+
+      def namespace(the_module)
+        config.set_namespace(the_module)
+      end
     end
 
     attr_reader :key

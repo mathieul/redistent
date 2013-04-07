@@ -31,6 +31,12 @@ describe Redistent::Accessor do
       expect(config.models.keys).to include(:team)
     end
 
+    it "specify the namespace with #namespace" do
+      klass.model :team
+      klass.namespace Hash
+      expect(config.models[:team].namespace).to eq(Hash)
+    end
+
     it "forwards the model definition block to the config object if any" do
       block_caller = nil
       klass.model :queue do
