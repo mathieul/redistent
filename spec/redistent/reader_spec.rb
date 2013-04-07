@@ -20,7 +20,7 @@ describe Redistent::Reader do
     it "finds a model by uid" do
       redis.set("reader:Band:12", BSON.serialize({}).to_s)
       model = reader.read(:band, "12")
-      expect(model).to be_an_instance_of(Band)
+      expect(model).to be_an_instance_of(MusicClasses::Band)
     end
 
     it "reads attributes from storage" do
@@ -63,7 +63,7 @@ describe Redistent::Reader do
       )
       romain = reader.read(:musician, "1")
       expect(romain.name).to eq("Romain Humeau")
-      expect(romain.band).to be_an_instance_of(Band)
+      expect(romain.band).to be_an_instance_of(MusicClasses::Band)
       expect(romain.band.uid).to eq("42")
       expect(romain.band.name).to eq("Eiffel")
     end

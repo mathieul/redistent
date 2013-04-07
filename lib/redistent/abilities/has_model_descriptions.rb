@@ -5,7 +5,8 @@ module Redistent
     def describe(model)
       @descriptions ||= {}
       @descriptions[model.class] ||= begin
-        type = Inflecto.underscore(model.class).to_sym
+        model_name = model.class.to_s.split("::").last
+        type = Inflecto.underscore(model_name).to_sym
         unless (description = models[type])
           raise ConfigError, "Model #{type.inspect} hasn't been described"
         end

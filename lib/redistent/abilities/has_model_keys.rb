@@ -3,7 +3,11 @@ require "inflecto"
 module Redistent
   module HasModelKeys
     def model_key(model)
-      model_name = model.is_a?(Symbol) ? Inflecto.camelize(model) : model.class.to_s
+      model_name = if model.is_a?(Symbol)
+                     Inflecto.camelize(model)
+                   else
+                    model.class.to_s.split("::").last
+                   end
       key[model_name]
     end
 

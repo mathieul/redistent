@@ -6,6 +6,7 @@ module RedisHelper
   def config
     @config ||= begin
       Redistent::Config.new.tap do |config|
+        config.set_namespace MusicClasses
         config.add_model :musician do
           references :band
         end

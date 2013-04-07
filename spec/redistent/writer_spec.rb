@@ -1,15 +1,15 @@
 require "spec_helper"
-require "redis_helper"
 require "music_classes"
+require "redis_helper"
 
 describe Redistent::Writer do
   include RedisHelper
 
   let(:key)       { Nest.new("writer", redis) }
   let(:writer)    { Redistent::Writer.new(key, config.models) }
-  let(:metallica) { Band.new(name: "Metallica") }
-  let(:james)     { Musician.new(name: "James Hetfield", band: metallica) }
-  let(:guitar)    { Instrument.new(name: "Jame's guitar", type: "guitar", musician: james) }
+  let(:metallica) { MusicClasses::Band.new(name: "Metallica") }
+  let(:james)     { MusicClasses::Musician.new(name: "James Hetfield", band: metallica) }
+  let(:guitar)    { MusicClasses::Instrument.new(name: "Jame's guitar", type: "guitar", musician: james) }
   let(:mock_next_uids) { ->(uid) { writer.should_receive(:next_uid).and_return(uid) } }
 
   context "write simple model" do
@@ -94,26 +94,26 @@ describe Redistent::Writer do
     end
 
     it "writes the sorted index if necessary" do
-      led_zeppelin = Band.new(uid: "K42", name: "Led Zeppelin")
-      stairway = Song.new(uid: "STH", title: "Stairway To Heaven", popularity: 9, band: led_zeppelin)
+      led_zeppelin = MusicClasses::Band.new(uid: "K42", name: "Led Zeppelin")
+      stairway = MusicClasses::Song.new(uid: "STH", title: "Stairway To Heaven", popularity: 9, band: led_zeppelin)
       writer.write(stairway)
       uids_with_scores = redis.zrange("writer:Band:K42:song_uids", 0, -1, with_scores: true)
       expect(uids_with_scores).to eq([["STH", 9.0]])
     end
 
     it "cleans up the sorted index if necessary" do
-      matisyahu = Band.new(uid: "M04", name: "Matisyahu")
-      song = Song.new(uid: "RX", title: "Roxane", popularity: 10, band: matisyahu)
+      matisyahu = MusicClasses::Band.new(uid: "M04", name: "Matisyahu")
+      song = MusicClasses::Song.new(uid: "RX", title: "Roxane", popularity: 10, band: matisyahu)
       writer.write(song)
-      song.band = Band.new(uid: "P77", name: "Police")
+      song.band = MusicClasses::Band.new(uid: "P77", name: "Police")
       writer.write(song)
       expect(redis.zrange("writer:Band:M04:song_uids", 0, -1)).to be_empty
       expect(redis.zrange("writer:Band:P77:song_uids", 0, -1)).to eq(["RX"])
     end
 
     it "removes old references when updating a model" do
-      suicidal = Band.new(uid: "S43", name: "Suicidal Tendencies")
-      bob = Musician.new(uid: "B44", name: "Robert Trujillo", band: suicidal)
+      suicidal = MusicClasses::Band.new(uid: "S43", name: "Suicidal Tendencies")
+      bob = MusicClasses::Musician.new(uid: "B44", name: "Robert Trujillo", band: suicidal)
       writer.write(bob)
       expect(redis.smembers("writer:Musician:indices:band_uid:S43")).to eq(["B44"])
       metallica.uid = "M39"
@@ -133,7 +133,7 @@ describe Redistent::Writer do
 
     it "runs :before_write block hooks before writing a model" do
       config.add_hook(:before_write) { |model| raise "type #{model.class}" }
-      expect { writer.write(metallica) }.to raise_error("type Band")
+      expect { writer.write(metallica) }.to raise_error("type MusicClasses::Band")
     end
   end
 end

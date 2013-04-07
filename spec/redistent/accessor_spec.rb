@@ -119,7 +119,7 @@ describe Redistent::Accessor do
   end
 
   context "referenced collection" do
-    let(:band) { Band.new(uid: "12") }
+    let(:band) { MusicClasses::Band.new(uid: "12") }
     let(:accessor) { klass.new(redis_config) }
     before(:each) do
       klass.config.add_model :musician do
