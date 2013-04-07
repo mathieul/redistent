@@ -69,7 +69,7 @@ describe Redistent::Accessor do
     let(:accessor) { klass.new(redis_config) }
 
     it "exposes the use of its unique mutex" do
-      operation = ->(messages) { messages << :start; sleep 0.1; messages << :finish }
+      operation = ->(messages) { messages << :start; sleep 0.2; messages << :finish }
 
       parallel = []
       threads = Array.new(5).map do
