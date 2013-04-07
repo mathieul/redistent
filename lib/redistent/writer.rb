@@ -23,6 +23,12 @@ module Redistent
       raise ex
     end
 
+    def next_uid
+      key["next_uid"].incr.to_s
+    end
+
+    private
+
     def set_and_return_missing_uids(models, found = {})
       Array(models).each do |model|
         found[model] = next_uid if model.uid.nil?
@@ -35,12 +41,6 @@ module Redistent
       end
       found
     end
-
-    def next_uid
-      key["next_uid"].incr.to_s
-    end
-
-    private
 
     def write_model(model, uid)
       run_hooks(:before_write, model)
