@@ -25,15 +25,17 @@ module Redistent
 
     def cleanup_indices(model, reference)
       return if model.persisted_attributes.nil?
-      if (ref_uid = model.persisted_attributes[reference.attribute])
-        index_key(model, reference.attribute)[ref_uid].srem(model.uid)
+      if (referenced_uid = model.persisted_attributes[reference.attribute])
+        index_key(model, reference.attribute)[referenced_uid].srem(model.uid)
         reference_key(model, reference.attribute).del
-        collection = reference.collection
-        if collection.type == :sorted
-          sorted = sorted_key(reference.model, ref_uid, collection.attribute)
-          sorted.zrem(model.uid)
-        end
+        cleanup_sorted_indices(model, referenced_uid, reference, reference.collection)
       end
+    end
+
+    def cleanup_sorted_indices(model, referenced_uid, reference, collection)
+      return unless collection.type == :sorted
+      sorted = sorted_key(reference.model, referenced_uid, collection.attribute)
+      sorted.zrem(model.uid)
     end
   end
 end
