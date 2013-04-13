@@ -85,6 +85,42 @@ class PersistentAccessor
     references :task_queue
     references :teammate
   end
+
+  # model :team do
+  #   collection :teammates # using: ns:Teammate:indices:team_uid:<team_uid>
+  # end
+
+  # model :teammate do
+  #   # ns:Teammate:<uid>                   => STRING <attributes>[serialized with ref uids]
+  #   # ns:Teammate:<uid>:team              => STRING <team.uid>
+  #   # ns:Teammate:indices:team:<team.uid> => SET <uid>
+
+  #   collection :task_queues # using: ns:Skill:indices:teammate:<uid> and ns:Skill:<skill_uid>:task_queue
+  # end
+
+  # model :task do
+  #   # ns:Task:<uid>                               => STRING <attributes>[serialized with ref uids]
+  #   # ns:Task:<uid>:task_queue                    => STRING <task_queue.uid>
+  #   # ns:Task:indices:task_queue:<task_queue.uid> => SET <uid>
+  # end
+
+  # model :task_queue do
+  #   # ns:TaskQueue:<uid>                       => STRING <attributes>[serialized with ref uids]
+  #   # ns:TaskQueue:<uid>:tasks_waiting         => ZSET <task.uid SCORE task.queued_at>
+  #   # ns:TaskQueue:<uid>:indices:tasks_offered => SET <task.uid>
+
+  #   collection :tasks_waiting # using: ns:TaskQueue:<uid>:tasks_waiting
+  #   collection :tasks_offered # using: ns:TaskQueue:<uid>:indices:tasks_offered
+  #   collection :teammates # using: ns:Skill:indices:task_queue:<uid> and ns:Skill:<skill_uid>:teammate
+  # end
+
+  # model :skill do
+  #   # ns:Skill:<uid>                               => STRING <attributes>[serialized with ref uids]
+  #   # ns:Skill:<uid>:task_queue                    => STRING <task_queue.uid>
+  #   # ns:Skill:indices:task_queue:<task_queue.uid> => SET <uid>
+  #   # ns:Skill:<uid>:teammate                      => STRING <teammate.uid>
+  #   # ns:Skill:indices:teammate:<teammate.uid>     => SET <uid>
+  # end
 end
 
 feature "persisting models" do
