@@ -69,65 +69,21 @@ class PersistentAccessor
       raise "#{model.class}: #{messages.join(" - ")}"
     end
   end
-  # model :team
-  # model :teammate do
-  #   references :team
-  #   collection :task_queues, via: :skills
-  # end
-  # model :task do
-  #   references :task_queue
-  # end
-  # model :task_queue do
-  #   collection :tasks, sort_by: :queued_at
-  #   collection :teammates, via: :skills
-  # end
-  # model :skill do
-  #   references :task_queue
-  #   references :teammate
-  # end
-
-  model :team do
-    # collection :teammates # using: ns:Teammate:indices:team:<uid>
-    collection :teammates, model: :teammate, index: :team
-  end
-
+  model :team
   model :teammate do
-    # ns:Teammate:<uid>                   => STRING <attributes>[serialized with ref uids]
-    # ns:Teammate:indices:team:<team.uid> => SET <uid>
-    index :team
-    # collection :task_queues # using: ns:Skill:indices:teammate:<uid> and ns:Skill:<skill_uid>:queue
-    collection :queues, model: :skill, index: {:teammate => :queue}, model: :queue
+    references :team
+    collection :task_queues, via: :skills
   end
-
   model :task do
-    # ns:Task:<uid>                     => STRING <attributes>[serialized with ref uids]
-    # ns:Task:indices:queue:<queue.uid> => SET <uid>
-    index :queue do
-      add_in :tasks_waiting, sorted_by: :queued_at, if: ->(task) { task.status == "queued" }
-      add_in :tasks_offered, if: ->(task) { task.status == "offered" }
-    end
+    references :task_queue
   end
-
-  model :queue, class: TaskQueue do
-    # ns:TaskQueue:<uid>                       => STRING <attributes>[serialized with ref uids]
-    # ns:TaskQueue:<uid>:tasks_waiting         => ZSET <task.uid SCORE task.queued_at>
-    # ns:TaskQueue:<uid>:indices:tasks_offered => SET <task.uid>
-    # collection :tasks_waiting # using: ns:TaskQueue:<uid>:tasks_waiting
-    # collection :tasks_offered # using: ns:TaskQueue:<uid>:indices:tasks_offered
-    # collection :teammates # using: ns:Skill:indices:queue:<uid> and ns:Skill:<skill_uid>:teammate
-    sorted_collection :tasks_waiting, model: :task, index: [:queue, :tasks_waiting]
-    collection :tasks_offered, model: :task, index: [:queue, :tasks_offered]
-    collection :teammates, model: :skill, index: {:queue => :teammate}, model: :teammate
+  model :task_queue do
+    collection :tasks, sort_by: :queued_at
+    collection :teammates, via: :skills
   end
-
   model :skill do
-    # ns:Skill:<uid>                           => STRING <attributes>[serialized with ref uids]
-    # ns:Skill:<uid>:queue                     => STRING <queue.uid>
-    # ns:Skill:indices:queue:<queue.uid>       => SET <uid>
-    # ns:Skill:<uid>:teammate                  => STRING <teammate.uid>
-    # ns:Skill:indices:teammate:<teammate.uid> => SET <uid>
-    index :queue, inline_reference: true
-    index :teammate, inline_reference: true
+    references :task_queue
+    references :teammate
   end
 end
 

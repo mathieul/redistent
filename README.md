@@ -31,81 +31,93 @@ require "redistent"
 require "virtus"
 require "scrivener"
 
-class Queue
-  include Virtus
-  include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes
-  attribute :name, String
-  def validate
-    assert_present :name
+module Models
+  class Queue
+    include Virtus
+    include Scrivener::Validations
+    attr_accessor :uid, :persisted_attributes
+    attribute :name, String
+    def validate
+      assert_present :name
+    end
   end
-end
 
-class Task
-  include Virtus
-  include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes
-  attribute :title, String
-  attribute :queue, Queue
-  attribute :queued_at, DateTime
-  def validate
-    assert_present :title
+  class Task
+    include Virtus
+    include Scrivener::Validations
+    attr_accessor :uid, :persisted_attributes
+    attribute :title, String
+    attribute :queue, Queue
+    attribute :queued_at, DateTime
+    def validate
+      assert_present :title
+    end
   end
-end
 
-class Team
-  include Virtus
-  include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes
-  attribute :name, String
-  def validate
-    assert_present :name
+  class Team
+    include Virtus
+    include Scrivener::Validations
+    attr_accessor :uid, :persisted_attributes
+    attribute :name, String
+    def validate
+      assert_present :name
+    end
   end
-end
 
-class Teammate
-  include Virtus
-  include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes
-  attribute :name, String
-  attribute :team, Team
-  def validate
-    assert_present :name
-    assert_present :team
+  class Teammate
+    include Virtus
+    include Scrivener::Validations
+    attr_accessor :uid, :persisted_attributes
+    attribute :name, String
+    attribute :team, Team
+    def validate
+      assert_present :name
+      assert_present :team
+    end
   end
-end
 
-class Skill
-  include Virtus
-  include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes
-  attribute :level, Integer
-  attribute :queue, Queue
-  attribute :teammate, Teammate
-  def validate
-    %i[level queue teammate].each { |name| assert_present(name) }
-    assert_numeric :level
+  class Skill
+    include Virtus
+    include Scrivener::Validations
+    attr_accessor :uid, :persisted_attributes
+    attribute :level, Integer
+    attribute :queue, Queue
+    attribute :teammate, Teammate
+    def validate
+      %i[level queue teammate].each { |name| assert_present(name) }
+      assert_numeric :level
+    end
   end
+
+  ModelNotValid = Class.new(StandardError)
 end
 
 class PersistentAccessor
   include Redistent::Accessor
-  before_write :valid?
-  model :team
+  namespace Models
+  model :team do
+    collection :teammates, model: :teammate, index: :team
+  end
   model :teammate do
-    references :team
-    collection :queues, via: :skills
+    index :team
+    collection :skills, model: :skill, index: :teammate
+    collection :queues, model: :queue, using: :skill, index: [:teammate, :queue]
   end
   model :task do
-    references :queue
+    index :queue do
+      add_in :tasks_waiting, sorted_by: :queued_at, if: ->(task) { task.status == "queued" }
+      add_in :tasks_offered,                        if: ->(task) { task.status == "offered" }
+    end
   end
-  model :queue do
-    collection :tasks, sort_by: :queued_at
-    collection :teammates, via: :skills
+  model :queue, class: TaskQueue do
+    sorted_collection :tasks_waiting, model: :task, index: {:queue => :tasks_waiting}
+    collection :tasks_offered,        model: :task, index: {:queue => :tasks_offered}
+    collection :skills, model: :skill, index: :queue
+    collection :teammates, model: :teammate, using: :skill, index: [:queue, :teammate]
   end
   model :skill do
-    references :queue
-    references :teammate
+    index :queue, inline_reference: true
+    index :teammate, inline_reference: true
   end
 end
 
