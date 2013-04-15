@@ -19,11 +19,14 @@ describe Redistent::Accessor do
   context "DSL" do
     let(:config) { klass.config }
 
-    it "adds a guard hook to run before writing with #before_write" do
-      klass.before_write :message_name
+    it "adds a hook to run before writing with #before_write" do
       klass.before_write { |model| "arg is #{model}" }
-      expect(config.hooks[:before_write].first).to eq(:message_name)
-      expect(config.hooks[:before_write].last.call("hello")).to eq("arg is hello")
+      expect(config.hooks[:before_write].first.call("hello")).to eq("arg is hello")
+    end
+
+    it "adds a hook to run after writing with #after_write" do
+      klass.after_write { |model| "arg is #{model}" }
+      expect(config.hooks[:after_write].first.call("goodbye")).to eq("arg is goodbye")
     end
 
     it "adds a model with #model" do

@@ -31,8 +31,8 @@ module Redistent
       @namespace ||= Object
     end
 
-    def add_hook(name, message = nil, &block)
-      hook = message ? message : (block || ->{})
+    def add_hook(name, &block)
+      hook = block || ->{}
       (hooks[name] ||= []) << hook
     end
 

@@ -17,8 +17,12 @@ module Redistent
         config.add_model(name, &block)
       end
 
-      def before_write(message = nil, &block)
-        config.add_hook(:before_write, message, &block)
+      def before_write(&block)
+        config.add_hook(:before_write, &block)
+      end
+
+      def after_write(&block)
+        config.add_hook(:after_write, &block)
       end
 
       def namespace(the_module)

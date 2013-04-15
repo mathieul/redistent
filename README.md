@@ -88,12 +88,12 @@ module Models
       assert_numeric :level
     end
   end
-
-  ModelNotValid = Class.new(StandardError)
 end
 
 class PersistentAccessor
   include Redistent::Accessor
+  ModelNotValid = Class.new(StandardError)
+  before_write { |model| raise ModelNotValid, model unless model.valid? }
   namespace Models
   model :team do
     collection :teammates, model: :teammate, index: :team
@@ -105,8 +105,8 @@ class PersistentAccessor
   end
   model :task do
     index :queue do
-      add_in :tasks_waiting, sorted_by: :queued_at, if: ->(task) { task.status == "queued" }
-      add_in :tasks_offered,                        if: ->(task) { task.status == "offered" }
+      store :tasks_waiting, sorted_by: :queued_at, if: ->(task) { task.status == "queued" }
+      store :tasks_offered,                        if: ->(task) { task.status == "offered" }
     end
   end
   model :queue, class: TaskQueue do

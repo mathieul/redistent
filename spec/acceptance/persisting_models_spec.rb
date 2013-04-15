@@ -5,7 +5,7 @@ require "scrivener"
 class TaskQueue
   include Virtus
   include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes
+  attr_accessor :uid, :persisted_attributes, :num_saved
   attribute :name, String
   def validate
     assert_present :name
@@ -15,7 +15,7 @@ end
 class Task
   include Virtus
   include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes
+  attr_accessor :uid, :persisted_attributes, :num_saved
   attribute :title, String
   attribute :task_queue, TaskQueue
   attribute :queued_at, Time
@@ -27,7 +27,7 @@ end
 class Team
   include Virtus
   include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes
+  attr_accessor :uid, :persisted_attributes, :num_saved
   attribute :name, String
   def validate
     assert_present :name
@@ -37,7 +37,7 @@ end
 class Teammate
   include Virtus
   include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes
+  attr_accessor :uid, :persisted_attributes, :num_saved
   attribute :name, String
   attribute :team, Team
   def validate
@@ -49,7 +49,7 @@ end
 class Skill
   include Virtus
   include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes
+  attr_accessor :uid, :persisted_attributes, :num_saved
   attribute :level, Integer
   attribute :task_queue, TaskQueue
   attribute :teammate, Teammate
@@ -69,6 +69,7 @@ class PersistentAccessor
       raise "#{model.class}: #{messages.join(" - ")}"
     end
   end
+  after_write { |model| model.num_saved = (model.num_saved || 0) + 1 }
   model :team
   model :teammate do
     references :team
@@ -93,6 +94,9 @@ feature "persisting models" do
   scenario "write, reload and erase a model" do
     queue = TaskQueue.new(name: "fix bugs")
     accessor.write(queue)
+    expect(queue.num_saved).to eq(1)
+    accessor.write(queue)
+    expect(queue.num_saved).to eq(2)
 
     reloaded = accessor.read(:task_queue, queue.uid)
     expect(reloaded.name).to eq("fix bugs")

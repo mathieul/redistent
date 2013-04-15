@@ -4,12 +4,7 @@ describe Redistent::Config do
   let(:config) { Redistent::Config.new }
 
   context "adding hooks" do
-    it "adds a message hook with #add_hook(:symbol)" do
-      config.add_hook(:hook_name, :message)
-      expect(config.hooks).to eq(hook_name: [:message])
-    end
-
-    it "adds a block hook with #add_hook(&block)" do
+    it "adds a hook with #add_hook(&block)" do
       config.add_hook(:hook_name) { "result" }
       expect(config.hooks[:hook_name].first.call).to eq("result")
     end
@@ -81,9 +76,10 @@ describe Redistent::Config do
 
   context "access the configuration" do
     it "can access hooks within each model definition" do
-      config.add_hook(:before_write, :run_me)
+      config.add_hook(:before_write) { |model| "model: #{model}" }
       config.add_model(:model_name)
-      expect(config.models[:model_name].hooks[:before_write]).to eq([:run_me])
+      hook = config.models[:model_name].hooks[:before_write].first
+      expect(hook.call("Gisele")).to eq("model: Gisele")
     end
 
     it "connects references to collections after finalization" do
