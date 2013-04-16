@@ -93,7 +93,7 @@ end
 class PersistentAccessor
   include Redistent::Accessor
   ModelNotValid = Class.new(StandardError)
-  before_write { |model| raise ModelNotValid, model unless model.valid? }
+  before_write { |model| raise ModelNotValid, model.errors unless model.valid? }
   namespace Models
   model :team do
     collection :teammates, model: :teammate, index: :team

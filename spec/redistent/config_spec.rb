@@ -12,8 +12,8 @@ describe Redistent::Config do
 
   context "adding models" do
     it "adds a model with #add_model" do
-      config.add_model(:name)
-      expect(config.models[:name].persist_attributes).to be_true
+      config.add_model(:something)
+      expect(config.models[:something].name).to eq(:something)
     end
 
     it "sets the namespace with #set_namespace" do
@@ -23,26 +23,27 @@ describe Redistent::Config do
       expect(config.models[:blah].namespace).to eq(Hash)
     end
 
-    it "adds a reference to a model with #references" do
-      config.add_model :queue do
-        references :team
+    context "#index" do
+      it "adds an index to a model" do
+        config.add_model :queue do
+          index :team
+        end
+        expect(config.models[:queue]).to have(1).indices
+        index = config.models[:queue].indices.first
+        expect(index.model).to eq(:team)
+        expect(index.attribute).to eq(:team_uid)
       end
-      expect(config.models[:queue]).to have(1).references
-      reference = config.models[:queue].references.first
-      expect(reference.model).to eq(:team)
-      expect(reference.attribute).to eq(:team_uid)
-    end
 
-    it "adds an implicit collection to the referenced model" do
-      config.add_model :queue do
-        references :team
+      it "can request inlining the reference with :inline_reference" do
+        config.add_model :queue do
+          index :team, inline_reference: true
+        end
+        expect(config.models[:queue].indices.first.inline_reference).to be_true
       end
-      collection = config.models[:team].collections[:queues]
-      expect(collection.type).to eq(:referenced)
-      expect(collection.model).to eq(:queue)
     end
 
     it "defines a sorted collection with #collection with a sort_by option" do
+      pending
       config.add_model :queue do
         collection :tasks, sort_by: :queued_at
       end
@@ -54,6 +55,7 @@ describe Redistent::Config do
     end
 
     it "defines an indirect collection with #collection and :via option" do
+      pending
       config.add_model :queue do
         collection :teammates, via: :skills
       end
@@ -66,6 +68,7 @@ describe Redistent::Config do
     end
 
     it "raises an error if both :via and :sort_by are used" do
+      pending
       expect {
         config.add_model :queue do
           collection :teammates, via: :skills, sort_by: :name
@@ -76,6 +79,7 @@ describe Redistent::Config do
 
   context "access the configuration" do
     it "can access hooks within each model definition" do
+      pending
       config.add_hook(:before_write) { |model| "model: #{model}" }
       config.add_model(:model_name)
       hook = config.models[:model_name].hooks[:before_write].first
@@ -83,6 +87,7 @@ describe Redistent::Config do
     end
 
     it "connects references to collections after finalization" do
+      pending
       config.add_model :team do
         collection :queues, sort_by: :priority
       end
@@ -97,6 +102,7 @@ describe Redistent::Config do
     end
 
     it "connects collections to references after finalization" do
+      pending
       config.add_model :team do
         collection :queues
       end

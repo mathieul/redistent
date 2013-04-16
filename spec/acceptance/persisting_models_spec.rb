@@ -2,89 +2,94 @@ require "acceptance_helper"
 require "virtus"
 require "scrivener"
 
-class TaskQueue
-  include Virtus
-  include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes, :num_saved
-  attribute :name, String
-  def validate
-    assert_present :name
+module Models
+  class TaskQueue
+    include Virtus
+    include Scrivener::Validations
+    attr_accessor :uid, :persisted_attributes, :num_saved
+    attribute :name, String
+    def validate
+      assert_present :name
+    end
   end
-end
 
-class Task
-  include Virtus
-  include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes, :num_saved
-  attribute :title, String
-  attribute :task_queue, TaskQueue
-  attribute :queued_at, Time
-  def validate
-    assert_present :title
+  class Task
+    include Virtus
+    include Scrivener::Validations
+    attr_accessor :uid, :persisted_attributes, :num_saved
+    attribute :title, String
+    attribute :task_queue, TaskQueue
+    attribute :queued_at, Time
+    def validate
+      assert_present :title
+    end
   end
-end
 
-class Team
-  include Virtus
-  include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes, :num_saved
-  attribute :name, String
-  def validate
-    assert_present :name
+  class Team
+    include Virtus
+    include Scrivener::Validations
+    attr_accessor :uid, :persisted_attributes, :num_saved
+    attribute :name, String
+    def validate
+      assert_present :name
+    end
   end
-end
 
-class Teammate
-  include Virtus
-  include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes, :num_saved
-  attribute :name, String
-  attribute :team, Team
-  def validate
-    assert_present :name
-    assert_present :team
+  class Teammate
+    include Virtus
+    include Scrivener::Validations
+    attr_accessor :uid, :persisted_attributes, :num_saved
+    attribute :name, String
+    attribute :team, Team
+    def validate
+      assert_present :name
+      assert_present :team
+    end
   end
-end
 
-class Skill
-  include Virtus
-  include Scrivener::Validations
-  attr_accessor :uid, :persisted_attributes, :num_saved
-  attribute :level, Integer
-  attribute :task_queue, TaskQueue
-  attribute :teammate, Teammate
-  def validate
-    %i[level task_queue teammate].each { |name| assert_present(name) }
-    assert_numeric :level
+  class Skill
+    include Virtus
+    include Scrivener::Validations
+    attr_accessor :uid, :persisted_attributes, :num_saved
+    attribute :level, Integer
+    attribute :task_queue, TaskQueue
+    attribute :teammate, Teammate
+    def validate
+      %i[level task_queue teammate].each { |name| assert_present(name) }
+      assert_numeric :level
+    end
   end
 end
 
 class PersistentAccessor
   include Redistent::Accessor
-  before_write do |model|
-    unless model.valid?
-      messages = model.errors.map do |attribute, errors|
-        "#{attribute} is #{errors.join(", ")}"
-      end
-      raise "#{model.class}: #{messages.join(" - ")}"
-    end
-  end
+  ModelNotValid = Class.new(StandardError)
+  before_write { |model| raise ModelNotValid, model.errors unless model.valid? }
   after_write { |model| model.num_saved = (model.num_saved || 0) + 1 }
-  model :team
+  namespace Models
+  model :team do
+    collection :teammates, model: :teammate, index: :team
+  end
   model :teammate do
-    references :team
-    collection :task_queues, via: :skills
+    index :team
+    collection :skills, model: :skill, index: :teammate
+    collection :queues, model: :queue, using: :skill, index: [:teammate, :queue]
   end
   model :task do
-    references :task_queue
+    index :queue do
+      store :tasks_waiting, sorted_by: :queued_at, if: ->(task) { task.status == "queued" }
+      store :tasks_offered,                        if: ->(task) { task.status == "offered" }
+    end
   end
-  model :task_queue do
-    collection :tasks, sort_by: :queued_at
-    collection :teammates, via: :skills
+  model :queue, class: TaskQueue do
+    sorted_collection :tasks_waiting, model: :task, index: {:queue => :tasks_waiting}
+    collection :tasks_offered,        model: :task, index: {:queue => :tasks_offered}
+    collection :skills, model: :skill, index: :queue
+    collection :teammates, model: :teammate, using: :skill, index: [:queue, :teammate]
   end
   model :skill do
-    references :task_queue
-    references :teammate
+    index :queue, inline_reference: true
+    index :teammate, inline_reference: true
   end
 end
 

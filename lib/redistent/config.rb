@@ -4,7 +4,7 @@ module Redistent
   class Config
     attr_reader :current_model
 
-    ModelDescription = Struct.new(:name, :persist_attributes, :config, :references, :collections) do
+    Model = Struct.new(:name, :config, :indices) do
       def hooks
         config.hooks
       end
@@ -13,9 +13,9 @@ module Redistent
       end
     end
 
-    ReferenceDescription = Struct.new(:model, :attribute, :collection)
+    Index = Struct.new(:model, :attribute, :inline_reference)
 
-    CollectionDescription = Struct.new(
+    Collection = Struct.new(
       :model, :type, :attribute, :sort_by, :target, :target_attribute, :reference
     )
 
@@ -37,9 +37,7 @@ module Redistent
     end
 
     def add_model(singular_name, &block)
-      definition = models[singular_name] ||= ModelDescription.new(
-        singular_name, true, self, [], {}
-      )
+      definition = models[singular_name] ||= Model.new(singular_name, self, [])
       with_model(definition, &block) if block_given?
       definition
     end
@@ -48,15 +46,17 @@ module Redistent
       @namespace = the_module
     end
 
-    def references(singular_name)
-      reference = ReferenceDescription.new(singular_name, :"#{singular_name}_uid")
-      current_model.references << reference
-      add_implicit_collection(singular_name, current_model.name)
+    def index(singular_name, options = {})
+      current_model.indices << Index.new(
+        singular_name,
+        :"#{singular_name}_uid",
+        !!options[:inline_reference]
+      )
     end
 
     def collection(plural_name, via: nil, sort_by: nil)
       singular_name = Inflecto.singularize(plural_name).to_sym
-      collection = CollectionDescription.new(
+      collection = Collection.new(
         singular_name,
         collection_type(via, sort_by),
         :"#{singular_name}_uid",
@@ -73,7 +73,7 @@ module Redistent
       return if @finalized
       models.each do |model_name, model|
         plural_name = Inflecto.pluralize(model_name).to_sym
-        model.references.each do |reference|
+        model.indices.each do |reference|
           unless (reference_model = models[reference.model])
             raise ConfigError, "Model #{type.inspect} hasn't been described"
           end
@@ -107,14 +107,6 @@ module Redistent
       @current_model = model
       instance_eval(&block)
       @current_model = old_model
-    end
-
-    def add_implicit_collection(model_name, collection_name)
-      model = add_model(model_name) unless model = models[model_name]
-      plural_name = Inflecto.pluralize(collection_name).to_sym
-      model.collections[plural_name] ||= CollectionDescription.new(
-        collection_name, :referenced, :"#{model_name}_uid"
-      )
     end
   end
 end
