@@ -42,6 +42,25 @@ describe Redistent::Config do
       end
     end
 
+    context "#collection" do
+      let(:collection) { config.models[:queue].collections[:teammates] }
+
+      it "has a name" do
+        config.add_model(:queue) { collection :teammates }
+        expect(collection.name).to eq(:teammates)
+      end
+
+      it "has a model" do
+        config.add_model(:queue) { collection :teammates, model: :mate }
+        expect(collection.model).to eq(:mate)
+      end
+
+      it "infers a model when not explicit" do
+        config.add_model(:queue) { collection :teammates }
+        expect(collection.model).to eq(:teammate)
+      end
+    end
+
     it "defines a sorted collection with #collection with a sort_by option" do
       pending
       config.add_model :queue do

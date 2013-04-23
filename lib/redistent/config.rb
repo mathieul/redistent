@@ -11,12 +11,15 @@ module Redistent
       def namespace
         config.namespace
       end
+      def collections
+        @collections ||= {}
+      end
     end
 
     Index = Struct.new(:model, :attribute, :inline_reference)
 
     Collection = Struct.new(
-      :model, :type, :attribute, :sort_by, :target, :target_attribute, :reference
+      :name, :model
     )
 
     def hooks
@@ -54,19 +57,22 @@ module Redistent
       )
     end
 
-    def collection(plural_name, via: nil, sort_by: nil)
-      singular_name = Inflecto.singularize(plural_name).to_sym
-      collection = Collection.new(
-        singular_name,
-        collection_type(via, sort_by),
-        :"#{singular_name}_uid",
-        sort_by
-      )
-      if collection.type == :sorted
-        collection.attribute = Inflecto.pluralize(collection.attribute).to_sym
-      end
-      add_indirection_to_collection(collection, via) unless via.nil?
-      current_model.collections[plural_name] = collection
+    def collection(name, options = {})
+      model = options.fetch(:model) { Inflecto.singularize(name).to_sym }
+      collection = Collection.new(name, model)
+      current_model.collections[name] = collection
+      # singular_name = Inflecto.singularize(plural_name).to_sym
+      # collection = Collection.new(
+      #   singular_name,
+      #   collection_type(via, sort_by),
+      #   :"#{singular_name}_uid",
+      #   sort_by
+      # )
+      # if collection.type == :sorted
+      #   collection.attribute = Inflecto.pluralize(collection.attribute).to_sym
+      # end
+      # add_indirection_to_collection(collection, via) unless via.nil?
+      # current_model.collections[plural_name] = collection
     end
 
     def finalize!
